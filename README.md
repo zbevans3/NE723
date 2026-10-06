@@ -1,2 +1,2 @@
 # NE723
-Repo for NE723 Neutron Transport Theory
+Repository for NE723 Neutron Transport Theory class projects
