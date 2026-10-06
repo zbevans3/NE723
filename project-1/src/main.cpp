@@ -1,5 +1,6 @@
 #include "data.h"
 #include "read_input.h"
+#include "build_mesh.h"
 
 #include <exception>
 #include <iostream>
@@ -13,12 +14,18 @@ int main(int argc, char* argv[])
 
     try {
         coreData core;
+        meshData mesh;
         solverData solver;
         quadratureData quadrature;
         std::vector<materialData> materials;
 
+        // read input
         Input reader;
-        reader.read(argv[1], core, materials);
+        reader.read(argv[1], core, quadrature, materials);
+
+        // build mesh
+        Mesh buildmesh;
+        buildmesh.build(core, mesh);
 
         // core and materials now contain the parsed input.
         // Allocate solver arrays and construct quadrature here.

@@ -11,6 +11,7 @@ public:
     void read(
         const std::string& filename,
         coreData& core,
+        quadratureData& quadrature,
         std::vector<materialData>& materials
     );
 
@@ -25,6 +26,11 @@ private:
         const coreData& core,
         std::vector<materialData>& materials
     );
+
+    void read_quadrature(
+        std::ifstream& file,
+        quadratureData& quadrature
+    );    
 };
 
 #endif
