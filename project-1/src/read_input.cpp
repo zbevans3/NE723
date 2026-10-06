@@ -111,7 +111,7 @@ void Input::read_core(std::ifstream& file, coreData& core)
             ss >> core.bcright;
             if (core.bcleft == "incoming"){
                 ss >> core.psiright;
-            }                      
+            }
         } else {
             throw std::runtime_error(
                 "Unknown CORE card: " + card
