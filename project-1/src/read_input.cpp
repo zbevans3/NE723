@@ -112,6 +112,17 @@ void Input::read_core(std::ifstream& file, coreData& core)
             if (core.bcleft == "incoming"){
                 ss >> core.psiright;
             }
+        } else if (card == "itdebug") {
+            std::string tmpstr;
+            ss >> tmpstr;
+            std::transform(tmpstr.begin(), tmpstr.end(), tmpstr.begin(), [](unsigned char c) {
+                return std::toupper(c);
+            });            
+            if (tmpstr == "T" or tmpstr == "TRUE"){
+                core.itdebug = true;
+            } else {
+                core.itdebug = false;
+            }
         } else {
             throw std::runtime_error(
                 "Unknown CORE card: " + card

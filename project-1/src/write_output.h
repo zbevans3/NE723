@@ -20,8 +20,36 @@ public:
     void write_mesh(
         std::ofstream &outfile,
         coreData& core,
-        meshData& mesh
+        meshData& mesh,
+        std::vector<materialData>& materials
     );
+
+    void write_angular_flux(
+        std::ofstream &outfile,
+        meshData& mesh,
+        solverData& solver
+    );
+
+    void write_angular_flux(
+        std::ofstream& outfile,
+        meshData& mesh,
+        quadratureData& quadrature,
+        solverData& solver
+    );    
+
+    void write_scalar_flux(
+        std::ofstream& outfile,
+        meshData& mesh,
+        quadratureData& quadrature,
+        solverData& solver
+    );
+
+    void write_current(
+        std::ofstream& outfile,
+        meshData& mesh,
+        quadratureData& quadrature,
+        solverData& solver
+    );    
 };
 
 #endif

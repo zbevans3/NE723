@@ -29,6 +29,7 @@ void Output::echo_input(
     outfile << "  [CORE]\n";
     outfile << std::left;
     outfile << "    " << std::setw(12) << "search"   << core.search   << "\n";
+    outfile << "    " << std::setw(12) << "itdebug"  << core.itdebug  << "\n";
     outfile << "    " << std::setw(12) << "epsk"     << core.epsk     << "\n";
     outfile << "    " << std::setw(12) << "epsflx"   << core.epsflx   << "\n";
     outfile << "    " << std::setw(12) << "maxin"    << core.maxin    << "\n";
@@ -73,13 +74,22 @@ void Output::echo_input(
     for (int i = 0 ; i < quadrature.order ; i++){
         outfile << std::setw(10) << std::right << std::fixed << std::setprecision(6) << quadrature.weight[i];
     }
-    outfile << "\n\n\n";
+    outfile << "\n";
+    outfile << "    sum of weights "<< std::setw(10) << std::right << std::fixed << std::setprecision(6) 
+            << std::accumulate(quadrature.weight.begin(), quadrature.weight.end(), 0.0) << "\n";
+    double wsum = 0.0;
+    for (int i = 0 ; i < quadrature.order ; i++){
+        wsum += quadrature.angle[i]*quadrature.weight[i];
+    }
+    outfile << "    sum of weight*angle "<< std::setw(10) << std::right << std::fixed << std::setprecision(6) << wsum << "\n";    
+    outfile << "\n\n";
 }
 
 void Output::write_mesh(
     std::ofstream& outfile,
     coreData& core,
-    meshData& mesh)
+    meshData& mesh,
+    std::vector<materialData>& materials)
 {
     double center = 0.0;
 
@@ -102,7 +112,7 @@ void Output::write_mesh(
     for (int i = 0; i < mesh.ncells; ++i) {
         center = 0.5 * (mesh.xloc[i] + mesh.xloc[i + 1]);
         outfile << std::setw(8)  << i + 1
-                << std::setw(10) << mesh.mapmat[i]
+                << std::setw(10) << materials[mesh.mapmat[i]].id
                 << std::setw(15) << mesh.xloc[i]
                 << std::setw(15) << mesh.xloc[i + 1]
                 << std::setw(15) << center
@@ -117,4 +127,191 @@ void Output::write_mesh(
         outfile << std::setw(8)  << i + 1 << std::setw(15) << mesh.xloc[i] << std::setw(10) << mesh.mapbc[i] << '\n';
     }
     outfile << '\n';
+}
+
+void Output::write_angular_flux(
+    std::ofstream& outfile,
+    meshData& mesh,
+    quadratureData& quadrature,
+    solverData& solver)
+{
+    const std::string indent = "    ";
+    constexpr int label_width = 8;
+    constexpr int cell_width = 8;
+    const int table_width = label_width + cell_width * mesh.ncells;
+    const int table_width_e = label_width + cell_width * mesh.nedges;
+
+    outfile << " Cell average angular flux solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width) << "Angle";
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << std::fixed << std::setprecision(3);
+    for (int u = 0; u < quadrature.order; ++u) {
+        outfile << indent
+                << std::setw(label_width) << quadrature.angle[u];
+        for (int i = 0; i < mesh.ncells; ++i) {
+            outfile << std::setw(cell_width) << solver.psibar[u][i];
+        }
+        outfile << '\n';
+    }
+    outfile << '\n';
+
+    outfile << " First Legendre spatial moment of the angular flux:\n";
+    outfile << indent << std::right
+            << std::setw(label_width) << "Angle";
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << std::fixed << std::setprecision(3);
+    for (int u = 0; u < quadrature.order; ++u) {
+        outfile << indent
+                << std::setw(label_width) << quadrature.angle[u];
+        for (int i = 0; i < mesh.ncells; ++i) {
+            outfile << std::setw(cell_width) << solver.psihat[u][i];
+        }
+        outfile << '\n';
+    }
+    outfile << '\n';
+
+    outfile << " Cell edge angular flux solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width) << "Angle";
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << std::fixed << std::setprecision(3);
+    for (int u = 0; u < quadrature.order; ++u) {
+        outfile << indent
+                << std::setw(label_width) << quadrature.angle[u];
+        for (int i = 0; i < mesh.nedges; ++i) {
+            outfile << std::setw(cell_width) << solver.psie[u][i];
+        }
+        outfile << '\n';
+    }
+    outfile << '\n';
+
+}
+
+void Output::write_scalar_flux(
+    std::ofstream& outfile,
+    meshData& mesh,
+    quadratureData& quadrature,
+    solverData& solver)
+{
+    const std::string indent = "    ";
+    constexpr int label_width = 8;
+    constexpr int cell_width = 8;
+    const int table_width = cell_width * mesh.ncells;
+    const int table_width_e = cell_width * mesh.nedges;
+
+    outfile << " Cell average scalar flux solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(3);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << solver.phibar[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " First Legendre spatial moment of the scalar flux:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(3);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << solver.phihat[i];
+    }
+    outfile << "\n\n";    
+
+    outfile << " Cell edge scalar flux solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(3);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << solver.phie[i];
+    }
+    outfile << "\n\n";
+}
+
+void Output::write_current(
+    std::ofstream& outfile,
+    meshData& mesh,
+    quadratureData& quadrature,
+    solverData& solver)
+{
+    const std::string indent = "    ";
+    constexpr int label_width = 8;
+    constexpr int cell_width = 8;
+    const int table_width = cell_width * mesh.ncells;
+    const int table_width_e = cell_width * mesh.nedges;
+
+    outfile << " Cell average current solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(3);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << solver.jbar[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " First Legendre spatial moment of the current:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(3);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << solver.jhat[i];
+    }
+    outfile << "\n\n";    
+
+    outfile << " Cell edge current solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(3);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << solver.je[i];
+    }
+    outfile << "\n\n";
 }

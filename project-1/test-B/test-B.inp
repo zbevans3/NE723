@@ -1,20 +1,20 @@
 [CORE]
   search fixed_source 
-  bcleft reflective
+  bcleft incoming 1.0
   bcright vacuum
 
-  xedge 2.0 3.0 5.0 6.0 8.0 
-  nx 10 5 10 5 10
-  matid 1 2 3 4 5
+  xedge 1.0 11.0 
+  nx 10 10
+  matid 1 2
 
   epsflx 1.0e-6
+  maxinner 1000000000
+
+  itdebug F 
 
 [MATERIAL]
-  material 1 50.0  0.0  0.00  0.0 50.0
-  material 2  5.0  0.0  0.00  0.0  0.0
-  material 3  0.0  0.0  0.00  0.0  0.0
-  material 4  1.1  0.7  0.10  2.0  0.0
-  material 5  1.1  0.5  0.16  2.5  1.0
+  material 1    2.0    0.0  0.00  0.0  0.0
+  material 2  100.0  100.0  0.00  0.0  0.0
 
 [QUADRATURE]
   order 8

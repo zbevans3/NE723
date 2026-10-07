@@ -21,6 +21,8 @@ struct coreData {
     std::string bcright = "vacuum";  // right boundary condition; (vacuum, reflective, incoming)
     double psileft = 0.0;            // angular flux at left boundary
     double psiright = 0.0;           // angular flux at right boundary
+
+    bool itdebug = true;             // option to print iteration data
 };
 
 struct meshData {
@@ -29,20 +31,32 @@ struct meshData {
     std::vector<int> mapmat;      // material ID in cell i mapmat(ncells)
     std::vector<int> mapbc;       // boundary condition in at edge i mapbc(nedges)
     std::vector<double> hx;       // i-th cell width hx(ncells)
-    std::vector<double> xloc;        // x-location of i-th edge x(nedges)
+    std::vector<double> xloc;     // x-location of i-th edge x(nedges)
 };
 
 struct solverData {
-    std::vector<std::vector<double>> psie;
-    std::vector<std::vector<double>> psim;
-    std::vector<std::vector<double>> source;
-    std::vector<double> residual;
+    std::vector<std::vector<double>> psie;        // cell edge angular flux (nedges, nangles)
+    std::vector<std::vector<double>> psibar;      // cell average angular flux (ncells, nangles)   
+    std::vector<std::vector<double>> psihat;      // first moment of angular flux (ncells, nangles)
+    std::vector<double> phie;                     // cell edge scalar flux (nedges)
+    std::vector<double> phibar;                   // cell average scalar flux (ncells)
+    std::vector<double> phihat;                   // first moment of scalar flux (ncells)
+    std::vector<double> je;                       // cell edge current (nedges)
+    std::vector<double> jbar;                     // cell average current (ncells)
+    std::vector<double> jhat;                     // first moment of current (ncells)
+    std::vector<double> source;                   // RHS of zeroth moment eqm (ncells)
+    std::vector<double> source1;                  // RHS of first moment eqn (ncells)
+    std::vector<double> sresidual;                // scheme residual for zeroth moment eqn (ncells)
+    std::vector<double> sresidual1;               // scheme residual for first moment eqn (ncells)
+    std::vector<double> iresidual;                // iterative residual for zeroth moment eqn (ncells)
+    std::vector<double> iresidual1;               // iterative residual for first moment eqn (ncells)    
+    std::vector<double> specrad;                  // specral radius vs iterate
+    std::vector<double> linfphi;                   // infinity norm of scalar flux vs iterate
     int k_inner = 0;
     int k_outer = 0;
     bool kFlag = false;
     double lambda = 1.0;
     double fluxnorm = 0.0;
-    int iflag = 0;
 };
 
 struct materialData {
@@ -58,6 +72,7 @@ struct quadratureData {
     int order = 0;
     std::vector<double> angle;
     std::vector<double> weight;
+    std::vector<int> reflmap;
 };
 
 #endif

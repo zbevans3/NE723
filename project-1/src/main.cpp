@@ -2,6 +2,7 @@
 #include "write_output.h"
 #include "read_input.h"
 #include "build_mesh.h"
+#include "source_iteration.h"
 
 #include <exception>
 #include <iostream>
@@ -59,7 +60,57 @@ int main(int argc, char* argv[])
     std::cout << "building mesh\n";    
     Mesh buildmesh;
     buildmesh.build(core, mesh);
-    out.write_mesh(outfile, core, mesh);
+    out.write_mesh(outfile, core, mesh, materials);
+
+    // build reflective ordinate map
+    if (core.bcleft == "reflective" || core.bcright == "reflective") {
+        quadrature.reflmap.assign(quadrature.order, -1);
+        for (int u1 = 0; u1 < quadrature.order; ++u1) {
+            for (int u2 = 0; u2 < quadrature.order; ++u2) {
+                if (std::fabs(quadrature.angle[u1] +
+                              quadrature.angle[u2]) < 1.0e-10) {
+                    quadrature.reflmap[u1] = u2;
+                    break;
+                }
+            }
+        }
+    }
+
+    // allocate solver arrays
+    solver.psie.assign(quadrature.order, std::vector<double>(mesh.nedges, 1.0));
+    solver.psibar.assign(quadrature.order, std::vector<double>(mesh.ncells, 1.0));
+    solver.psihat.assign(quadrature.order, std::vector<double>(mesh.ncells, 1.0));
+    solver.phie.assign(mesh.nedges, 1.0);
+    solver.phibar.assign(mesh.ncells, 1.0);
+    solver.phihat.assign(mesh.ncells, 1.0);
+    solver.je.assign(mesh.nedges, 0.0);
+    solver.jbar.assign(mesh.ncells, 0.0);
+    solver.jhat.assign(mesh.ncells, 0.0);
+    solver.source.assign(mesh.ncells, 0.0);
+    solver.source1.assign(mesh.ncells, 0.0);
+    solver.sresidual.assign(mesh.ncells, 0.0);
+    solver.sresidual1.assign(mesh.ncells, 0.0);
+    solver.iresidual.assign(mesh.ncells, 0.0);
+    solver.iresidual1.assign(mesh.ncells, 0.0);
+
+    // start solve
+    if (core.search == "fixed_source"){
+       // fixed source calculation
+       std::cout << "performing fixed source calculation\n";
+       std::cout << "starting source iteration\n";
+       SourceIteration source;
+       source.solve(core, quadrature, materials, mesh, solver);
+
+    } else if (core.search == "eigenvalue"){
+
+    } else {
+        std::cerr << "Unknown type. Exiting...\n";
+        return 1;
+    }
+
+    out.write_angular_flux(outfile, mesh, quadrature, solver);
+    out.write_scalar_flux(outfile, mesh, quadrature, solver);
+    out.write_current(outfile, mesh, quadrature, solver);
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);

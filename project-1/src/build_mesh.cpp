@@ -28,7 +28,7 @@ void Mesh::build(
         double dx = (xright - xleft) / static_cast<double>(core.nx[ii]);
 
         for (int j = 0; j < core.nx[ii]; ++j) {
-            mesh.mapmat[ctr] = core.matid[ii];
+            mesh.mapmat[ctr] = core.matid[ii]-1;
             mesh.hx[ctr] = dx;
             mesh.xloc[ctr + 1] = mesh.xloc[ctr] + dx;
             ++ctr;
@@ -40,7 +40,21 @@ void Mesh::build(
       0 - interior
       1 - vacuum
       2 - reflective
+      3 - incoming
     */
-    mesh.mapbc.front() = (core.bcleft == "vacuum")  ? 1 : 2; 
-    mesh.mapbc.back()  = (core.bcright == "vacuum") ? 1 : 2;
+    if (core.bcleft == "vacuum"){
+        mesh.mapbc.front() = 1;
+    } else if (core.bcleft == "reflective"){
+        mesh.mapbc.front() = 2;
+    } else {
+        mesh.mapbc.front() = 3;
+    }
+     
+    if (core.bcright == "vacuum"){
+        mesh.mapbc.back() = 1;
+    } else if (core.bcright == "reflective"){
+        mesh.mapbc.back() = 2;
+    } else {
+        mesh.mapbc.back() = 3;
+    }
 }
