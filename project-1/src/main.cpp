@@ -3,6 +3,7 @@
 #include "read_input.h"
 #include "build_mesh.h"
 #include "source_iteration.h"
+#include "outer_iteration.h"
 
 #include <exception>
 #include <iostream>
@@ -18,6 +19,7 @@ int main(int argc, char* argv[])
 {
     double time;
     auto start = std::chrono::high_resolution_clock::now();
+    bool exitF = true;
 
     std::string inpfile;
     inpfile=argv[1];
@@ -98,10 +100,39 @@ int main(int argc, char* argv[])
        // fixed source calculation
        std::cout << "performing fixed source calculation\n";
        std::cout << "starting source iteration\n";
-       SourceIteration source;
-       source.solve(core, quadrature, materials, mesh, solver);
+
+       solver.lambda = 1.0;
+       double invlambda = solver.lambda;
+
+       SourceIteration inner;
+       inner.solve(core, quadrature, materials, mesh, solver, invlambda);
 
     } else if (core.search == "eigenvalue"){
+       // eigenvalue calculation
+       std::cout << "performing eigenvalue calculation\n";
+       bool foundfis = false;
+       for (int i = 0 ; i < mesh.ncells ; i++){
+          if (materials[mesh.mapmat[i]].xsfiss > 0.0){
+            foundfis = true;
+            break;
+          }
+       }
+ 
+       if (foundfis == false){
+        exitF = false;
+        std::cerr << "ERROR: No fissionable material found in mesh. Exiting.\n";
+       }
+
+       solver.lambda = 1.0;
+       OuterIteration outer;
+       outer.solve(core, quadrature, materials, mesh, solver);
+
+    } else if (core.search == "critical_size"){
+       std::cout << "performing critical size search\n";
+       if (core.nregions > 1){
+          exitF = false;            
+          std::cerr << "ERROR: Only one region can be used in critical size search. Exiting.\n";
+       }
 
     } else {
         std::cerr << "Unknown type. Exiting...\n";
@@ -115,7 +146,7 @@ int main(int argc, char* argv[])
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     time = duration.count() / 1e6;
-    std::cout << "Execution finished successfully!\n";
+    (exitF == true) ? std::cout << "Execution finished successfully!\n" : std::cout << "Execution failed.\n";
     std::cout<<"Execution time (sec):  " << std::fixed << std::setprecision(4) << time << "\n";
 
     outfile.close();

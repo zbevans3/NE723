@@ -54,7 +54,6 @@ struct solverData {
     std::vector<double> linfphi;                   // infinity norm of scalar flux vs iterate
     int k_inner = 0;
     int k_outer = 0;
-    bool kFlag = false;
     double lambda = 1.0;
     double fluxnorm = 0.0;
 };

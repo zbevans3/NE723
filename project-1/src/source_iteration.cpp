@@ -14,13 +14,13 @@ void SourceIteration::solve(
         quadratureData& quadrature,
         std::vector<materialData>& materials,
         meshData& mesh,
-        solverData& solver
+        solverData& solver,
+        double invlambda
     )    
 {
 
     phibarold = solver.phibar;
     phihatold = solver.phihat;
-    phibarlm2 = solver.phibar;
     Qi.assign(mesh.ncells, 0.0);
     Qhati.assign(mesh.ncells, 0.0);
     psilbc.assign(quadrature.order, 0.0);
@@ -52,10 +52,23 @@ void SourceIteration::solve(
     }
 
     if (core.itdebug){
-    std::cout << std::right << std::setw(12) << "Iteration" << std::setw(16) << "Flux error" << std::setw(16) << "S flux res"
+    std::cout << std::right << std::setw(12) << "  SI" << std::setw(16) << "Flux error" << std::setw(16) << "S flux res"
               << std::setw(16) << "S moment res" << std::setw(16) << "I flux res"
               << std::setw(16) << "I moment res" << "\n";
     };
+
+
+    // compute initial fission source
+    // if eigenvalue calculation, then fission source is updated only on outer iteration
+    std::vector<double> qfis(mesh.ncells, 0.0);
+    std::vector<double> qfishat(mesh.ncells, 0.0);
+    
+    for (int i = 0; i < mesh.ncells; ++i) {  
+        qfis[i] = invlambda * materials[mesh.mapmat[i]].nu *
+                  materials[mesh.mapmat[i]].xsfiss * solver.phibar[i];
+        qfishat[i] = invlambda * materials[mesh.mapmat[i]].nu *
+                     materials[mesh.mapmat[i]].xsfiss * solver.phihat[i];
+    }
 
     int l = 0;
     double betai = 0;
@@ -73,7 +86,6 @@ void SourceIteration::solve(
     while (l < core.maxin){
         l++;
         // update l-2 values
-        phibarlm2 = phibarold;        
         (l == 1) ? maxepslm2 = 1.0 : maxepslm2 = maxeps;
 
         // update l-1 values
@@ -82,12 +94,18 @@ void SourceIteration::solve(
 
         // computed l-th iterate source and 1st moment for cell i
         for (int i = 0 ; i < mesh.ncells ; i++){
-          Qi[i] = 0.5 * mesh.hx[i] * ((materials[mesh.mapmat[i]].xsscat + 
-                                    materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
-                                    solver.phibar[i] + materials[mesh.mapmat[i]].q);
-          Qhati[i] = 0.5 * mesh.hx[i] * ((materials[mesh.mapmat[i]].xsscat + 
-                                       materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
-                                       solver.phihat[i]);
+          if (core.search == "fixed_source"){
+            qfis[i] = invlambda * materials[mesh.mapmat[i]].nu *
+                      materials[mesh.mapmat[i]].xsfiss * solver.phibar[i];
+            qfishat[i] = invlambda * materials[mesh.mapmat[i]].nu *
+                         materials[mesh.mapmat[i]].xsfiss * solver.phihat[i];
+          }
+          double qexternal = core.search == "fixed_source" ? materials[mesh.mapmat[i]].q : 0.0;
+          
+          Qi[i] = 0.5 * mesh.hx[i] * (materials[mesh.mapmat[i]].xsscat * solver.phibar[i] 
+                                      + qfis[i] + qexternal);
+          Qhati[i] = 0.5 * mesh.hx[i] * (materials[mesh.mapmat[i]].xsscat * solver.phihat[i] 
+                                      + qfishat[i]);
         }
 
         // perform mesh sweep for each ordinate
@@ -194,6 +212,10 @@ void SourceIteration::solve(
                                   materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
                                   (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
                                   mesh.hx[i] * solver.phihat[i];
+           solver.sresidual[i] = std::abs(solver.sresidual[i]);
+           solver.sresidual1[i] = std::abs(solver.sresidual1[i]);
+           solver.iresidual[i] = std::abs(solver.iresidual[i]);
+           solver.iresidual1[i] = std::abs(solver.iresidual1[i]);                                  
         }
 
         maxeps = *std::max_element(phieps.begin(), phieps.end());
@@ -215,12 +237,12 @@ void SourceIteration::solve(
         }
 
         solver.linfphi.push_back(maxeps);
-        solver.specrad.push_back(maxeps);
+        solver.specrad.push_back(rhol);
 
         stopcrit = core.epsflx * (1.0 / rhol - 1.0);
         if (maxeps < stopcrit) {
-            std::cout << "Source iteration convergence reached in " << solver.k_inner + l << " iterations.\n";
-            std::cout << "Final convergence criterion: " 
+            std::cout << "Source iteration convergence reached in " << l << " iterations.\n";
+            std::cout << "Final convergence criterion: "
                       << std::scientific << std::setprecision(6) << stopcrit << "\n";
             break;
         }
