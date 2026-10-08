@@ -17,6 +17,7 @@ void Mesh::build(
     mesh.hx.assign(mesh.ncells, 0.0);
     mesh.mapbc.assign(mesh.nedges, 0);    // defualt all nodes to interior
     mesh.xloc.assign(mesh.nedges, 0.0);
+    mesh.xcenter.assign(mesh.ncells, 0.0);
 
     int ctr = 0;
     double xleft = 0.0;
@@ -31,6 +32,7 @@ void Mesh::build(
             mesh.mapmat[ctr] = core.matid[ii]-1;
             mesh.hx[ctr] = dx;
             mesh.xloc[ctr + 1] = mesh.xloc[ctr] + dx;
+            mesh.xcenter[ctr] =  (mesh.xloc[ctr] + dx/2.0);
             ++ctr;
         }
         xleft = xright;

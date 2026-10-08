@@ -49,7 +49,26 @@ public:
         meshData& mesh,
         quadratureData& quadrature,
         solverData& solver
-    );    
+    );
+
+    void write_residuals(
+        std::ofstream& outfile,
+        meshData& mesh,
+        quadratureData& quadrature,
+        solverData& solver
+    ); 
+
+    void write_inner_iteration(
+        std::ofstream& outfile,
+        coreData& core,        
+        solverData& solver
+    );
+
+    void write_outer_iteration(
+        std::ofstream& outfile,
+        coreData& core,        
+        solverData& solver
+    );
 };
 
 #endif

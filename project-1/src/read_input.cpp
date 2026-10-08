@@ -100,8 +100,12 @@ void Input::read_core(std::ifstream& file, coreData& core)
             ss >> core.epsk;
         } else if (card == "epsflx") {
             ss >> core.epsflx;
+        } else if (card == "epspow") {
+            ss >> core.epspow;            
         } else if (card == "search") {
             ss >> core.search;
+        } else if (card == "kcrit") {
+            ss >> core.kcrit;            
         } else if (card == "bcleft") {
             ss >> core.bcleft;
             if (core.bcleft == "incoming"){
@@ -123,6 +127,17 @@ void Input::read_core(std::ifstream& file, coreData& core)
             } else {
                 core.itdebug = false;
             }
+        } else if (card == "otdebug") {
+            std::string tmpstr;
+            ss >> tmpstr;
+            std::transform(tmpstr.begin(), tmpstr.end(), tmpstr.begin(), [](unsigned char c) {
+                return std::toupper(c);
+            });            
+            if (tmpstr == "T" or tmpstr == "TRUE"){
+                core.otdebug = true;
+            } else {
+                core.otdebug = false;
+            }            
         } else {
             throw std::runtime_error(
                 "Unknown CORE card: " + card

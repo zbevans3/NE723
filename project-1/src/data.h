@@ -15,6 +15,8 @@ struct coreData {
     int maxout = 50;                 // maximum number of outer (eigenvalue) iterations 
     double epsk = 1.0e-6;            // convergence criterion on eigenvalue
     double epsflx = 1.0e-6;          // convergence criterion on flux
+    double epspow = 1.0e-6;          // convergence criterion on fission source
+    double kcrit = 1.0;              // critical eigenvalue for critical size search
 
     std::string search;
     std::string bcleft = "vacuum";   // left boundary condition; (vacuum, reflective, incoming)
@@ -22,7 +24,8 @@ struct coreData {
     double psileft = 0.0;            // angular flux at left boundary
     double psiright = 0.0;           // angular flux at right boundary
 
-    bool itdebug = true;             // option to print iteration data
+    bool itdebug = true;             // option to print inner iteration data
+    bool otdebug = true;             // option to print outer iteration data
 };
 
 struct meshData {
@@ -32,6 +35,7 @@ struct meshData {
     std::vector<int> mapbc;       // boundary condition in at edge i mapbc(nedges)
     std::vector<double> hx;       // i-th cell width hx(ncells)
     std::vector<double> xloc;     // x-location of i-th edge x(nedges)
+    std::vector<double> xcenter;  // x-location of i-th center x(ncells)
 };
 
 struct solverData {
@@ -50,8 +54,14 @@ struct solverData {
     std::vector<double> sresidual1;               // scheme residual for first moment eqn (ncells)
     std::vector<double> iresidual;                // iterative residual for zeroth moment eqn (ncells)
     std::vector<double> iresidual1;               // iterative residual for first moment eqn (ncells)    
-    std::vector<double> specrad;                  // specral radius vs iterate
-    std::vector<double> linfphi;                   // infinity norm of scalar flux vs iterate
+    std::vector<double> ispecrad;                 // specral radius vs inner iterate
+    std::vector<double> ilinfphi;                 // infinity norm of scalar flux vs inner iterate
+    std::vector<double> ospecrad;                 // specral radius vs inner iterate
+    std::vector<double> olinfphi;                 // infinity norm of scalar flux vs inner iterate    
+    std::vector<double> specradk;                 // specral radius vs iterate of keff
+    std::vector<double> linfkeff;                 // infinity norm of keff flux vs iterate
+    std::vector<double> keff;                     // keff flux vs iterate    
+    std::vector<double> linffsrc;                 // infinity norm of fissio source vs iterate
     int k_inner = 0;
     int k_outer = 0;
     double lambda = 1.0;

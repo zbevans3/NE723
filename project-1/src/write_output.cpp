@@ -54,11 +54,11 @@ void Output::echo_input(
 
     outfile << "  [MATERIAL]\n";
     for (int i = 0 ; i < core.nmat ; i++){
-        outfile << "    material " << std::setw(6) << materials[i].id << std::setw(8) 
-                << std::fixed << std::setprecision(4) << materials[i].xstot << std::setw(8)
-                << std::fixed << std::setprecision(4) << materials[i].xsscat << std::setw(8)
-                << std::fixed << std::setprecision(4) << materials[i].xsfiss << std::setw(8)
-                << std::fixed << std::setprecision(4) << materials[i].nu << std::setw(8)
+        outfile << "    material " << std::setw(6) << materials[i].id << std::setw(10) 
+                << std::fixed << std::setprecision(4) << materials[i].xstot << std::setw(10)
+                << std::fixed << std::setprecision(4) << materials[i].xsscat << std::setw(10)
+                << std::fixed << std::setprecision(4) << materials[i].xsfiss << std::setw(10)
+                << std::fixed << std::setprecision(4) << materials[i].nu << std::setw(10)
                 << std::fixed << std::setprecision(4) << materials[i].q << "\n";
     }
     outfile << "\n";
@@ -91,11 +91,9 @@ void Output::write_mesh(
     meshData& mesh,
     std::vector<materialData>& materials)
 {
-    double center = 0.0;
 
     outfile << " Mesh information:\n";
     outfile << "    Number of cells: " << mesh.ncells << '\n';
-    outfile << "    Number of edges: " << mesh.nedges << "\n\n";
 
     outfile << std::right
             << std::setw(8)  << "Cell"
@@ -110,17 +108,17 @@ void Output::write_mesh(
     outfile << std::fixed << std::setprecision(6);
 
     for (int i = 0; i < mesh.ncells; ++i) {
-        center = 0.5 * (mesh.xloc[i] + mesh.xloc[i + 1]);
         outfile << std::setw(8)  << i + 1
                 << std::setw(10) << materials[mesh.mapmat[i]].id
                 << std::setw(15) << mesh.xloc[i]
                 << std::setw(15) << mesh.xloc[i + 1]
-                << std::setw(15) << center
+                << std::setw(15) << mesh.xcenter[i]
                 << std::setw(15) << mesh.hx[i]
                 << '\n';
     }
 
     outfile << "\n Edge information:\n";
+    outfile << "    Number of edges: " << mesh.nedges << "\n";
     outfile << std::setw(8)  << "Edge" << std::setw(15) << "Location" << std::setw(10) << "ibc" << '\n';
     outfile << "    " << std::string(29, '-') << '\n';
     for (int i = 0; i < mesh.nedges; ++i) {
@@ -314,4 +312,145 @@ void Output::write_current(
         outfile << std::setw(cell_width) << solver.je[i];
     }
     outfile << "\n\n";
+}
+
+void Output::write_residuals(
+    std::ofstream& outfile,
+    meshData& mesh,
+    quadratureData& quadrature,
+    solverData& solver)
+{
+    const std::string indent = "    ";
+    constexpr int label_width = 14;
+    constexpr int cell_width = 14;
+    const int table_width = cell_width * mesh.ncells;
+
+    outfile << " Cell average scheme residual:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::scientific << std::setprecision(4);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << solver.sresidual[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Scheme residual for first Legendre spatial moment:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::scientific << std::setprecision(4);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << solver.sresidual1[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Cell average iterative residual:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::scientific << std::setprecision(4);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << solver.sresidual[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Iterative residual for first Legendre spatial moment:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::scientific << std::setprecision(4);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << solver.sresidual1[i];
+    }
+    outfile << "\n\n";
+}
+
+void Output::write_inner_iteration(std::ofstream& outfile,
+        coreData& core,    
+        solverData& solver){
+
+    const std::string indent = "    ";
+    constexpr int cell_width = 14;
+    const int table_width = cell_width * 2;
+    const int niter = solver.ilinfphi.size();
+
+    outfile << " Fixed source iteration summary:\n";
+    outfile << "    Total number of iterations: " << niter << '\n';
+    outfile << indent << std::left
+            << std::setw(9) << "Iteration" << std::right
+            << std::setw(cell_width) << "rho flux"
+            << std::setw(cell_width) << "flux error"
+            << '\n';
+    outfile << indent << std::string(9+table_width, '-') << '\n';
+    for (int i = 0; i < niter ; ++i) {
+            outfile << indent << std::setw(9) << i+1
+                << std::setw(cell_width) << std::scientific << std::setprecision(6) << solver.ispecrad[i]
+                << std::setw(cell_width) << std::scientific << std::setprecision(6) << solver.ilinfphi[i]
+                << '\n';
+    }
+    double stopcrit1 = core.epsflx * (1.0 / solver.ispecrad.back() - 1.0);
+    outfile << "   Final flux criterion: " << std::scientific << std::setprecision(5)
+                          << std::setw(16) << stopcrit1 << "\n"; 
+    outfile << "\n\n";
+
+}
+
+void Output::write_outer_iteration(std::ofstream& outfile,
+        coreData& core,
+        solverData& solver){
+
+    const std::string indent = "    ";
+    constexpr int cell_width = 14;
+    const int table_width = cell_width * 5;
+    const int niter = solver.olinfphi.size();
+       
+    outfile << " Power iteration summary:\n";
+    outfile << "    Total number of iterations: " << niter << '\n';
+    outfile << indent << std::left
+            << std::setw(9) << "Iteration" << std::right
+            << std::setw(cell_width) << "keff"
+            << std::setw(cell_width) << "keff error"
+            << std::setw(cell_width) << "flux error"
+            << std::setw(cell_width) << "rho flux"
+            << std::setw(cell_width) << "fsource error"
+            << '\n';
+    outfile << indent << std::string(9+table_width, '-') << '\n';
+    for (int i = 0; i < niter ; ++i) {
+            outfile <<  std::setw(9) << i+1
+                << std::setw(cell_width) << std::scientific << std::setprecision(6) << solver.keff[i]
+                << std::setw(cell_width) << std::scientific << std::setprecision(6) << solver.linfkeff[i]
+                << std::setw(cell_width) << std::scientific << std::setprecision(6) << solver.olinfphi[i]
+                << std::setw(cell_width) << std::scientific << std::setprecision(6) << solver.ospecrad[i]
+                << std::setw(cell_width) << std::scientific << std::setprecision(6) << solver.linffsrc[i]
+                << '\n';
+    }
+    double stopcrit1 = core.epsk * (1.0 / solver.specradk.back() - 1.0);
+    double stopcrit2 = core.epsflx * (1.0 / solver.ospecrad.back() - 1.0);
+    outfile << "   Final keff criterion: " << std::scientific << std::setprecision(5)
+                          << std::setw(16) << stopcrit1 << "\n";
+    outfile << "   Final flux criterion: " << std::scientific << std::setprecision(5)
+                          << std::setw(16) << stopcrit2 << "\n";                          
+    outfile << "\n\n";
+
 }

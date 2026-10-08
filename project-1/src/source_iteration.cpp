@@ -50,11 +50,10 @@ void SourceIteration::solve(
       // incoming
       psirbc.assign(quadrature.order, core.psiright);
     }
-
-    if (core.itdebug){
-    std::cout << std::right << std::setw(12) << "  SI" << std::setw(16) << "Flux error" << std::setw(16) << "S flux res"
-              << std::setw(16) << "S moment res" << std::setw(16) << "I flux res"
-              << std::setw(16) << "I moment res" << "\n";
+    if (core.search == "fixed_source" && core.itdebug){
+      std::cout << std::right << std::setw(12) << "  SI" << std::setw(16) << "Flux error" << std::setw(16) << "S flux res"
+                << std::setw(16) << "S moment res" << std::setw(16) << "I flux res"
+                << std::setw(16) << "I moment res" << "\n";
     };
 
 
@@ -236,14 +235,16 @@ void SourceIteration::solve(
                     << '\n';
         }
 
-        solver.linfphi.push_back(maxeps);
-        solver.specrad.push_back(rhol);
+        solver.ilinfphi.push_back(maxeps);
+        solver.ispecrad.push_back(rhol);
 
         stopcrit = core.epsflx * (1.0 / rhol - 1.0);
         if (maxeps < stopcrit) {
-            std::cout << "Source iteration convergence reached in " << l << " iterations.\n";
-            std::cout << "Final convergence criterion: "
-                      << std::scientific << std::setprecision(6) << stopcrit << "\n";
+            if (core.search != "eigenvalue" && core.search != "critical_size"){
+              std::cout << "Source iteration convergence reached in " << l << " iterations.\n";
+              std::cout << "Final convergence criterion: "
+                        << std::scientific << std::setprecision(6) << stopcrit << "\n";
+            }
             break;
         }
     }
