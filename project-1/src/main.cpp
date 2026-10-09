@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
                  << std::scientific << std::setprecision(4)
                  << std::setw(16) << kdiff
                  << '\n';   
-       outfile << " Critical search results\n";
+       outfile << " Critical size search results:\n";
        outfile << std::right
                  << std::setw(12) << "Iteration"
                  << std::setw(16) << "h [cm]"
