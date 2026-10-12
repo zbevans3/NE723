@@ -11,4 +11,17 @@
   - vacuum, reflective, or specified incoming flux BC
 ````
 <img width="300" height="300" alt="psibar" src="https://github.com/user-attachments/assets/c75a110d-c06b-4729-ba82-0eec0fce56b7" />
+How to build:
+simply change to src directory and type make (assuming you have a standard compiler):
+```
+cd ./src
+make
+```
+This creates the exectuable `project-1.exe`
+
+How to run:
+Switch to test directory and use:
+````
+../src/project-1.exe input.inp
+````
 
