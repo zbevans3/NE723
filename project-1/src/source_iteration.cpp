@@ -211,10 +211,10 @@ void SourceIteration::solve(
                                   materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
                                   (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
                                   mesh.hx[i] * solver.phihat[i];
-           solver.sresidual[i] = std::abs(solver.sresidual[i]);
-           solver.sresidual1[i] = std::abs(solver.sresidual1[i]);
-           solver.iresidual[i] = std::abs(solver.iresidual[i]);
-           solver.iresidual1[i] = std::abs(solver.iresidual1[i]);                                  
+//           solver.sresidual[i] = std::abs(solver.sresidual[i]);
+//           solver.sresidual1[i] = std::abs(solver.sresidual1[i]);
+//           solver.iresidual[i] = std::abs(solver.iresidual[i]);
+//           solver.iresidual1[i] = std::abs(solver.iresidual1[i]);                                  
         }
 
         maxeps = *std::max_element(phieps.begin(), phieps.end());

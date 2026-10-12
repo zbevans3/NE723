@@ -366,7 +366,7 @@ void Output::write_residuals(
     outfile << indent << std::setw(label_width)
             << std::scientific << std::setprecision(4);
     for (int i = 0; i < mesh.ncells; ++i) {
-        outfile << std::setw(cell_width) << solver.sresidual[i];
+        outfile << std::setw(cell_width) << solver.iresidual[i];
     }
     outfile << "\n\n";
 
@@ -381,7 +381,7 @@ void Output::write_residuals(
     outfile << indent << std::setw(label_width)
             << std::scientific << std::setprecision(4);
     for (int i = 0; i < mesh.ncells; ++i) {
-        outfile << std::setw(cell_width) << solver.sresidual1[i];
+        outfile << std::setw(cell_width) << solver.iresidual1[i];
     }
     outfile << "\n\n";
 }
