@@ -18,6 +18,19 @@ void SourceIteration::solve(
         double invlambda
     )    
 {
+    int l = 0;
+    double betai = 0;
+    double Gi = 0.0;
+    double invmu = 0.0;
+    double invGi = 0.0;
+    double maxeps = 1.0e6;
+    double maxepslm2 = 1.0e6;
+    double rhol = 1.0e6;
+    double maxsres = 1.0e6;
+    double maxsres1 = 1.0e6;
+    double maxires = 1.0e6;
+    double maxires1 = 1.0e6;
+    double stopcrit = 1.0e6;
 
     phibarold = solver.phibar;
     phihatold = solver.phihat;
@@ -26,6 +39,21 @@ void SourceIteration::solve(
     psilbc.assign(quadrature.order, 0.0);
     psirbc.assign(quadrature.order, 0.0);
     phieps.assign(mesh.ncells, 1.0e6);
+
+    if (core.acceleration == "QD"){
+      // build QD data
+      CbfL = -0.5;
+      CbfR = 0.5;
+      Edde.assign(mesh.nedges, 1.0/3.0);
+      Eddbar.assign(mesh.ncells, 1.0/3.0);
+      rhol = 0.5;
+      solver.phibarLO.assign(mesh.ncells, 0.0);
+      solver.phieLO.assign(mesh.nedges, 0.0);
+      solver.jeLO.assign(mesh.nedges, 0.0);
+    }
+
+    // assign coefficient that determines LD or LLD
+    double alpha = (core.scheme == "LD") ? 1.0 : 3.0;
 
     // fill left boundary flux array
     if (mesh.mapbc.front() == 1){
@@ -59,9 +87,9 @@ void SourceIteration::solve(
 
     // compute initial fission source
     // if eigenvalue calculation, then fission source is updated only on outer iteration
-    std::vector<double> qfis(mesh.ncells, 0.0);
-    std::vector<double> qfishat(mesh.ncells, 0.0);
-    
+    qfis.assign(mesh.ncells, 0.0);
+    qfishat.assign(mesh.ncells, 0.0);
+
     for (int i = 0; i < mesh.ncells; ++i) {  
         qfis[i] = invlambda * materials[mesh.mapmat[i]].nu *
                   materials[mesh.mapmat[i]].xsfiss * solver.phibar[i];
@@ -69,19 +97,6 @@ void SourceIteration::solve(
                      materials[mesh.mapmat[i]].xsfiss * solver.phihat[i];
     }
 
-    int l = 0;
-    double betai = 0;
-    double Gi = 0.0;
-    double invmu = 0.0;
-    double invGi = 0.0;
-    double maxeps = 1.0e6;
-    double maxepslm2 = 1.0e6;
-    double rhol = 1.0e6;
-    double maxsres = 1.0e6;
-    double maxsres1 = 1.0e6;
-    double maxires = 1.0e6;
-    double maxires1 = 1.0e6;
-    double stopcrit = 1.0e6;
     while (l < core.maxin){
         l++;
         // update l-2 values
@@ -113,17 +128,17 @@ void SourceIteration::solve(
            if (quadrature.angle[u] > 0){
               // positive sweep (x+)
               solver.psie[u].front() = psilbc[u];
-              
+
               // step through cells
               for (int i = 0 ; i < mesh.ncells ; i++){                                                    
                 betai = materials[mesh.mapmat[i]].xstot * mesh.hx[i] * invmu;
-                Gi = betai*betai + 4.0 * betai + 6.0;
+                Gi = alpha*betai*betai + (3.0+alpha)*betai + 6.0;
                 invGi = 1.0/Gi;
 
                 // compute cell  avg angular flux and first legendre moment
-                solver.psibar[u][i] =  ((3.0 + betai) * Qi[i] - Qhati[i]) * (invmu * invGi)
-                                         + (6.0 + betai) * invGi * solver.psie[u][i];
-                solver.psihat[u][i] =  (3.0 * Qi[i] + (1.0 + betai) * Qhati[i]) * (invmu * invGi)
+                solver.psibar[u][i] =  ((3.0 + alpha*betai) * Qi[i] - alpha*Qhati[i]) * (invmu * invGi)
+                                         + (6.0 + alpha*betai) * invGi * solver.psie[u][i];
+                solver.psihat[u][i] =  (3.0 * Qi[i] + alpha*(1.0 + betai) * Qhati[i]) * (invmu * invGi)
                                          - (3.0 * betai) * invGi * solver.psie[u][i];
 
                 // compute outgoing angular flux
@@ -137,13 +152,13 @@ void SourceIteration::solve(
               // step through cells
               for (int i = mesh.ncells - 1; i >= 0; --i) {                                                 
                 betai = materials[mesh.mapmat[i]].xstot * mesh.hx[i] * invmu;
-                Gi = betai*betai - 4.0 * betai + 6.0;
+                Gi = alpha*betai*betai - (3.0 + alpha) * betai + 6.0;
                 invGi = 1.0/Gi;
 
                 // compute cell  avg angular flux and first legendre moment
-                solver.psibar[u][i] =  ((betai - 3.0) * Qi[i] - Qhati[i]) * (invmu * invGi)
-                                         + (6.0 - betai) * invGi * solver.psie[u][i+1];
-                solver.psihat[u][i] =  (3.0 * Qi[i] + (betai - 1.0) * Qhati[i]) * (invmu * invGi)
+                solver.psibar[u][i] =  ((alpha*betai - 3.0) * Qi[i] - alpha*Qhati[i]) * (invmu * invGi)
+                                         + (6.0 - alpha*betai) * invGi * solver.psie[u][i+1];
+                solver.psihat[u][i] =  (3.0 * Qi[i] + alpha*(betai - 1.0) * Qhati[i]) * (invmu * invGi)
                                          - (3.0 * betai) * invGi * solver.psie[u][i+1];
 
                 // compute outgoing angular flux
@@ -164,33 +179,33 @@ void SourceIteration::solve(
           }
         }
 
-        // compute new cell edge scalar flux and current
-        for (int i = 0 ; i < mesh.nedges ; i++){
-           solver.phie[i] = 0.0;
-           solver.je[i] = 0.0;
-           for (int u = 0 ; u < quadrature.order ; u++){
-             solver.phie[i] += quadrature.weight[u] * solver.psie[u][i];
-             solver.je[i] += quadrature.angle[u] * quadrature.weight[u] * solver.psie[u][i];
-           }
-        }
+        if (core.acceleration == "none"){
+          update_flux_and_current(
+                  quadrature,
+                  mesh,
+                  solver
+          );
+        } else if (core.acceleration == "QD"){
+          // do QD acceleration
+          update_flux_and_current(
+                  quadrature,
+                  mesh,
+                  solver
+          );
+          QD_acceleration(
+                  core,
+                  quadrature,
+                  materials,
+                  mesh,
+                  solver,
+                  invlambda
+          );
+          for (int i = 0 ; i < mesh.ncells ; i++){
+            solver.phibar[i] = solver.phibarLO[i];
+            phieps[i] = fabs(solver.phibar[i]-phibarold[i]);
+          }
+        };
 
-        // compute new cell avg scalar flux and first moment scalar flux
-        for (int i = 0 ; i < mesh.ncells ; i++){
-           solver.phibar[i] = 0.0;
-           solver.phihat[i] = 0.0;
-           solver.jbar[i] = 0.0;
-           solver.jhat[i] = 0.0;
-                             
-           // compute new flux and currents
-           for (int u = 0 ; u < quadrature.order ; u++){
-             solver.phibar[i] += quadrature.weight[u] * solver.psibar[u][i];
-             solver.phihat[i] += quadrature.weight[u] * solver.psihat[u][i];
-             solver.jbar[i] += quadrature.angle[u] * quadrature.weight[u] * solver.psibar[u][i];
-             solver.jhat[i] += quadrature.angle[u] * quadrature.weight[u] * solver.psihat[u][i];
-           }              
-           phieps[i] = fabs(solver.phibar[i]-phibarold[i]);
-        }
-        
         // compute residuals
         for (int i = 0 ; i < mesh.ncells ; i++){
            // scheme
@@ -199,8 +214,8 @@ void SourceIteration::solve(
                                  materials[mesh.mapmat[i]].xsfiss) * mesh.hx[i] * phibarold[i] - 
                                  materials[mesh.mapmat[i]].q * mesh.hx[i];
            solver.sresidual1[i] = 3.0*(solver.je[i+1] + solver.je[i] - 2.0*solver.jbar[i]) +
-                                  materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
-                                  (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
+                                  alpha * materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
+                                  alpha * (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
                                   mesh.hx[i] * phihatold[i];
            // iterative
            solver.iresidual[i] = solver.je[i+1] - solver.je[i] + materials[mesh.mapmat[i]].xstot * mesh.hx[i] * 
@@ -208,13 +223,9 @@ void SourceIteration::solve(
                                  materials[mesh.mapmat[i]].xsfiss) * mesh.hx[i] * solver.phibar[i] - 
                                  materials[mesh.mapmat[i]].q * mesh.hx[i];
            solver.iresidual1[i] = 3.0*(solver.je[i+1] + solver.je[i] - 2.0*solver.jbar[i]) +
-                                  materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
-                                  (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
-                                  mesh.hx[i] * solver.phihat[i];
-//           solver.sresidual[i] = std::abs(solver.sresidual[i]);
-//           solver.sresidual1[i] = std::abs(solver.sresidual1[i]);
-//           solver.iresidual[i] = std::abs(solver.iresidual[i]);
-//           solver.iresidual1[i] = std::abs(solver.iresidual1[i]);                                  
+                                  alpha * materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
+                                  alpha * (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
+                                  mesh.hx[i] * solver.phihat[i];                              
         }
 
         maxeps = *std::max_element(phieps.begin(), phieps.end());
@@ -226,7 +237,7 @@ void SourceIteration::solve(
 
         if (core.itdebug){
           std::cout << std::right << std::scientific << std::setprecision(6)
-                    << std::setw(12)  << l
+                    << std::setw(12) << l
                     << std::setw(16) << maxeps
                     << std::setw(16) << maxsres
                     << std::setw(16) << maxsres1
@@ -250,4 +261,211 @@ void SourceIteration::solve(
     }
 
     solver.k_inner += l;
+}
+
+void SourceIteration::update_flux_and_current(
+        quadratureData& quadrature,
+        meshData& mesh,
+        solverData& solver
+){
+
+    // compute new cell edge scalar flux and current
+    for (int i = 0 ; i < mesh.nedges ; i++){
+       solver.phie[i] = 0.0;
+       solver.je[i] = 0.0;
+       for (int u = 0 ; u < quadrature.order ; u++){
+         solver.phie[i] += quadrature.weight[u] * solver.psie[u][i];
+         solver.je[i] += quadrature.angle[u] * quadrature.weight[u] * solver.psie[u][i];
+       }
+    }
+
+    // compute new cell avg scalar flux and first moment scalar flux
+    for (int i = 0 ; i < mesh.ncells ; i++){
+       solver.phibar[i] = 0.0;
+       solver.phihat[i] = 0.0;
+       solver.jbar[i] = 0.0;
+       solver.jhat[i] = 0.0;
+
+       // compute new flux and currents
+       for (int u = 0 ; u < quadrature.order ; u++){
+         solver.phibar[i] += quadrature.weight[u] * solver.psibar[u][i];
+         solver.phihat[i] += quadrature.weight[u] * solver.psihat[u][i];
+         solver.jbar[i] += quadrature.angle[u] * quadrature.weight[u] * solver.psibar[u][i];
+         solver.jhat[i] += quadrature.angle[u] * quadrature.weight[u] * solver.psihat[u][i];
+       }              
+       phieps[i] = fabs(solver.phibar[i]-phibarold[i]);
+    }
+
+}
+
+void SourceIteration::QD_acceleration(
+        coreData& core,
+        quadratureData& quadrature,
+        std::vector<materialData>& materials,
+        meshData& mesh,
+        solverData& solver,
+        double invlambda
+){
+
+    // boundary factors
+    double nsumL = 0.0;
+    double dsumL = 0.0;
+    double nsumR = 0.0;
+    double dsumR = 0.0;
+    for (int u = 0; u < quadrature.order; u++){
+        const double weight  = quadrature.weight[u];
+        const double mu = quadrature.angle[u];
+        if (mu < 0.0){
+            // leaving through the left boundary
+            nsumL += weight * mu * solver.psie[u].front();
+            dsumL += weight * solver.psie[u].front();
+        } else {
+            // leaving through the right boundary
+            nsumR += weight * mu * solver.psie[u].back();
+            dsumR += weight * solver.psie[u].back();
+        }
+    }
+    CbfL = nsumL / dsumL;
+    CbfR = nsumR / dsumR;
+
+    // Eddington factors at cell edges
+    for (int i = 0; i < mesh.nedges; i++){
+        double nsum = 0.0;
+        double dsum = 0.0;
+        for (int u = 0; u < quadrature.order; u++){
+            const double mu = quadrature.angle[u];
+            const double weight = quadrature.weight[u];
+            nsum += weight * mu * mu * solver.psie[u][i];
+            dsum += weight * solver.psie[u][i];
+        }
+        Edde[i] = nsum / dsum;
+    }
+
+    // Eddington factors from cell averages
+    for (int i = 0; i < mesh.ncells; i++){
+        double nsum = 0.0;
+        double dsum = 0.0;
+        for (int u = 0; u < quadrature.order; u++){
+            const double mu = quadrature.angle[u];
+            const double weight = quadrature.weight[u];
+            nsum += weight * mu * mu * solver.psibar[u][i];
+            dsum += weight * solver.psibar[u][i];
+        }
+        Eddbar[i] = nsum / dsum;
+    }
+
+    // build linear system
+    const int N = mesh.ncells;
+    const int n = 2 * N + 1;
+
+    std::vector<std::vector<double>> Amat(n, std::vector<double>(n, 0.0));
+    std::vector<double> bvec(n, 0.0);
+    std::vector<double> phivec(n, 0.0);
+
+    // computencoefficients
+    std::vector<double> a1(N);
+    std::vector<double> a2(N);
+    std::vector<double> b(N);
+    for (int i = 0; i < N; i++){
+        double sigmar = materials[mesh.mapmat[i]].xstot - materials[mesh.mapmat[i]].xsscat;
+        double q = 0.0;
+        if (core.search == "fixed_source"){
+            sigmar -= invlambda * materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss;
+            q = materials[mesh.mapmat[i]].q;
+        } else {
+            q = qfis[i];
+        }
+        a1[i] = 2.0 / (materials[mesh.mapmat[i]].xstot * mesh.hx[i]);
+        a2[i] = 2.0 * a1[i] * Eddbar[i] + sigmar * mesh.hx[i];
+        b[i] = q * mesh.hx[i];
+    }
+
+    // compute incoming flux and current
+    double phiL = 0.0;
+    double JinL = 0.0;
+    double phiR = 0.0;
+    double JinR = 0.0;
+    for (int u = 0; u < quadrature.order; u++){
+        const double weight = quadrature.weight[u];
+        const double mu = quadrature.angle[u];
+        if (mu > 0.0){
+            phiL += weight * psilbc[u];
+            JinL += weight * mu * psilbc[u];
+        } else {
+            phiR += weight * psirbc[u];
+            JinR += weight * mu * psirbc[u];
+        }
+    }
+
+    // left edge
+    Amat[0][0] = a1[0] * Edde[0];
+    Amat[0][1] = -a1[0] * Eddbar[0];
+    if (mesh.mapbc.front() != 2){
+        Amat[0][0] -= CbfL;
+        bvec[0] = JinL - CbfL * phiL;
+    }
+
+    // balance equation
+    for (int i = 0; i < N; i++){
+        const int k = 2 * i + 1;
+        Amat[k][k-1] = -a1[i] * Edde[i];
+        Amat[k][k] = a2[i];
+        Amat[k][k+1] = -a1[i] * Edde[i+1];
+        bvec[k] = b[i];
+    }
+
+    // current continuity on interior
+    for (int i = 0; i < N - 1; i++){
+        const int k = 2 * i + 2;
+        Amat[k][k-1] = a1[i] * Eddbar[i];
+        Amat[k][k] = -(a1[i] + a1[i+1]) * Edde[i+1];
+        Amat[k][k+1] = a1[i+1] * Eddbar[i+1];
+    }
+
+    // right edge
+    Amat[n-1][n-2] = a1[N-1] * Eddbar[N-1];
+    Amat[n-1][n-1] = -a1[N-1] * Edde[N];
+    if (mesh.mapbc.back() != 2){
+        Amat[n-1][n-1] -= CbfR;
+        bvec[n-1] = JinR - CbfR * phiR;
+    }
+
+    // Solve linear system with Gauss Elimination
+    for (int j = 0; j < n; j++){
+        int piv = j;
+        for (int r = j + 1; r < n; r++){
+            if (std::fabs(Amat[r][j]) > std::fabs(Amat[piv][j])) piv = r;
+        }
+        std::swap(Amat[j], Amat[piv]);
+        std::swap(bvec[j], bvec[piv]);
+        for (int r = j + 1; r < n; r++){
+            const double f = Amat[r][j] / Amat[j][j];
+            if (f == 0.0) continue;
+            for (int c = j; c < n; c++){
+              Amat[r][c] -= f * Amat[j][c];
+            }
+            bvec[r] -= f * bvec[j];
+        }
+    }
+    for (int r = n - 1; r >= 0; r--){
+        double s = bvec[r];
+        for (int c = r + 1; c < n; c++){
+          s -= Amat[r][c] * phivec[c];
+        }
+        phivec[r] = s / Amat[r][r];
+    }
+
+    // update LO scalar flux values
+    for (int i = 0; i < N; i++) {
+        solver.phieLO[i]   = phivec[2 * i];
+        solver.phibarLO[i] = phivec[2 * i + 1];
+    }
+    solver.phieLO[N] = phivec[2 * N];
+
+    // update LO current values
+    for (int i = 0; i < N; i++) {
+        solver.jeLO[i] = a1[i] * (Edde[i] * solver.phieLO[i] - Eddbar[i] * solver.phibarLO[i]);
+    }
+    solver.jeLO[N] = a1[N-1] * (Eddbar[N-1] * solver.phibarLO[N-1] - Edde[N] * solver.phieLO[N]);
+
 }

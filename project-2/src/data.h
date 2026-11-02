@@ -64,6 +64,9 @@ struct solverData {
     std::vector<double> linfkeff;                 // infinity norm of keff flux vs iterate
     std::vector<double> keff;                     // keff flux vs iterate    
     std::vector<double> linffsrc;                 // infinity norm of fissio source vs iterate
+    std::vector<double> phieLO;                   // cell edge scalar flux from low order solution
+    std::vector<double> phibarLO;                 // cell average scalar flux from low order solution
+    std::vector<double> jeLO;                     // cell edge current from low order solution
     int k_inner = 0;
     int k_outer = 0;
     double lambda = 1.0;

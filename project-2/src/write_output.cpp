@@ -88,7 +88,6 @@ void Output::echo_input(
 
 void Output::write_mesh(
     std::ofstream& outfile,
-    coreData& core,
     meshData& mesh,
     std::vector<materialData>& materials)
 {
@@ -202,7 +201,6 @@ void Output::write_angular_flux(
 void Output::write_scalar_flux(
     std::ofstream& outfile,
     meshData& mesh,
-    quadratureData& quadrature,
     solverData& solver)
 {
     const std::string indent = "    ";
@@ -260,7 +258,6 @@ void Output::write_scalar_flux(
 void Output::write_current(
     std::ofstream& outfile,
     meshData& mesh,
-    quadratureData& quadrature,
     solverData& solver)
 {
     const std::string indent = "    ";
@@ -318,7 +315,6 @@ void Output::write_current(
 void Output::write_residuals(
     std::ofstream& outfile,
     meshData& mesh,
-    quadratureData& quadrature,
     solverData& solver)
 {
     const std::string indent = "    ";

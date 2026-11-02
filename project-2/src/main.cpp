@@ -15,8 +15,7 @@
 #include <numeric>
 #include <chrono>
 
-void reset_solution(coreData& core,
-        quadratureData& quadrature,
+void reset_solution(quadratureData& quadrature,
         meshData& mesh,
         solverData& solver);
 
@@ -67,7 +66,7 @@ int main(int argc, char* argv[])
     std::cout << "Building mesh\n";    
     Mesh buildmesh;
     buildmesh.build(core, mesh);
-    if (core.search != "critical_size") out.write_mesh(outfile, core, mesh, materials);
+    if (core.search != "critical_size") out.write_mesh(outfile, mesh, materials);
 
     // build reflective ordinate map
     if (core.bcleft == "reflective" || core.bcright == "reflective") {
@@ -84,7 +83,7 @@ int main(int argc, char* argv[])
     }
 
     // allocate solver arrays
-    reset_solution(core, quadrature, mesh, solver);
+    reset_solution(quadrature, mesh, solver);
 
     // start solve
     if (core.search == "fixed_source"){
@@ -190,7 +189,7 @@ int main(int argc, char* argv[])
        
            // Build and solve at the new size.
            buildmesh.build(core, mesh);
-           reset_solution(core, quadrature, mesh, solver);
+           reset_solution(quadrature, mesh, solver);
        
            solver.lambda = 1.0;
            outer.solve(core, quadrature, materials, mesh, solver);
@@ -238,7 +237,7 @@ int main(int argc, char* argv[])
 
        // write final mesh
        outfile << " Final mesh:\n";
-       out.write_mesh(outfile, core, mesh, materials);
+       out.write_mesh(outfile, mesh, materials);
 
     } else {
         std::cerr << "Unknown search type. Exiting...\n";
@@ -246,9 +245,9 @@ int main(int argc, char* argv[])
     }
 
     out.write_angular_flux(outfile, mesh, quadrature, solver);
-    out.write_scalar_flux(outfile, mesh, quadrature, solver);
-    out.write_current(outfile, mesh, quadrature, solver);
-    out.write_residuals(outfile, mesh, quadrature, solver);    
+    out.write_scalar_flux(outfile, mesh, solver);
+    out.write_current(outfile, mesh, solver);
+    out.write_residuals(outfile, mesh, solver);    
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
@@ -260,8 +259,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-void reset_solution(coreData& core,
-        quadratureData& quadrature,
+void reset_solution(quadratureData& quadrature,
         meshData& mesh,
         solverData& solver){
 

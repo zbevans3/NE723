@@ -1,5 +1,8 @@
 [CORE]
-  search fixed_source 
+  search fixed_source
+  scheme LLD
+  acceleration QD
+ 
   bcleft incoming 1.0
   bcright vacuum
 
