@@ -1,0 +1,28 @@
+[CORE]
+  search critical_size 
+  bcleft  vacuum 
+  bcright vacuum
+
+  xedge 300    ! initial guess
+  nx 50 
+  matid 1
+
+  epsflx 1.0e-6
+  epspow 1.0e-6
+  epsk   1.0e-6
+
+  maxinner 2000
+  maxouter 100
+
+  kcrit 1.00000
+
+  itdebug false
+  otdebug false
+
+[MATERIAL]
+  material 1  1.0  0.45  0.30  2.0 0.0
+
+[QUADRATURE]
+  order 8
+  angle -0.9602898564975363 -0.7966664774136267 -0.5255324099163290 -0.1834346424956498 0.1834346424956498 0.5255324099163290 0.7966664774136267 0.9602898564975363
+  weight 0.1012285363 0.2223810345 0.3137066459 0.3626837834 0.3626837834 0.3137066459 0.2223810345 0.1012285363 

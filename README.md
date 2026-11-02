@@ -3,5 +3,6 @@ Repository for NE723 Neutron Transport Theory class projects
 
 Discrete ordinates solver for 1D slab geometry
 ```
-/project-1 
+/project-1  --> LDG
+/project-2  --> LLD with QD acceleration
 ```
