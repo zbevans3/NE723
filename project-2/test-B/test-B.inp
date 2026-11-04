@@ -2,24 +2,24 @@
   search fixed_source
   scheme LLD
   acceleration QD
- 
-  bcleft incoming 1.0
+
+  bcleft vacuum
   bcright vacuum
 
-  xedge 1.0 11.0 
-  nx 10 10
+  xedge 10.0 30.0
+  nx 10 40
   matid 1 2
 
-  epsflx 1.0e-6
-  maxinner 1000000000
+  epsflx 1.0e-10
+  maxinner 1000000
 
-  itdebug F 
+  itdebug F
 
 [MATERIAL]
-  material 1    2.0    0.0  0.00  0.0  0.0
-  material 2  100.0  100.0  0.00  0.0  0.0
+  material 1    1.0    0.5  0.00  0.0  0.5
+  material 2   10.0    9.9  0.00  0.0  0.01
 
 [QUADRATURE]
-  order 8
-  angle -0.9602898564975363 -0.7966664774136267 -0.5255324099163290 -0.1834346424956498 0.1834346424956498 0.5255324099163290 0.7966664774136267 0.9602898564975363
-  weight 0.1012285363 0.2223810345 0.3137066459 0.3626837834 0.3626837834 0.3137066459 0.2223810345 0.1012285363 
+  order 4
+  angle -0.7886751345948129 -0.2113248654051871 0.2113248654051871 0.7886751345948129
+  weight 0.50 0.50 0.50 0.50

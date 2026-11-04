@@ -1,0 +1,25 @@
+[CORE]
+  search fixed_source
+  scheme LLD
+  acceleration QD
+
+  bcleft vacuum
+  bcright vacuum
+
+  xedge 1.0
+  nx 10
+  matid 1
+
+  epsflx 1.0e-10
+  maxinner 1000000
+
+  itdebug F
+
+[MATERIAL]
+  ! nu = 1e-4: sigma_t = 1/nu, sigma_a = nu, q = nu
+  material 1  10000.0  9999.9999  0.00  0.0  0.0001
+
+[QUADRATURE]
+  order 4
+  angle -0.7886751345948129 -0.2113248654051871 0.2113248654051871 0.7886751345948129
+  weight 0.50 0.50 0.50 0.50

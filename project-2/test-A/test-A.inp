@@ -1,18 +1,19 @@
 [CORE]
-  search fixed_source 
+  search fixed_source
+  scheme LLD
   acceleration QD
 
   bcleft incoming 1.0
   bcright vacuum
 
-  xedge 1.0 11.0 
+  xedge 1.0 11.0
   nx 10 10
   matid 1 2
 
   epsflx 1.0e-10
-  maxinner 1000000000
+  maxinner 1000000
 
-  itdebug F 
+  itdebug F
 
 [MATERIAL]
   material 1    2.0    0.0  0.00  0.0  0.0

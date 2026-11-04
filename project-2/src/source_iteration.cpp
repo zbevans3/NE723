@@ -50,6 +50,8 @@ void SourceIteration::solve(
       solver.phibarLO.assign(mesh.ncells, 0.0);
       solver.phieLO.assign(mesh.nedges, 0.0);
       solver.jeLO.assign(mesh.nedges, 0.0);
+      solver.mLO.assign(mesh.nedges, 0.0);
+      solver.mprimeLO.assign(mesh.nedges, 0.0);
     }
 
     // assign coefficient that determines LD or LLD
@@ -123,75 +125,72 @@ void SourceIteration::solve(
         }
 
         // perform mesh sweep for each ordinate
-        for (int u = 0 ; u < quadrature.order ; u++){
-           invmu = 1.0 / quadrature.angle[u];
-           if (quadrature.angle[u] > 0){
-              // positive sweep (x+)
-              solver.psie[u].front() = psilbc[u];
-
-              // step through cells
-              for (int i = 0 ; i < mesh.ncells ; i++){                                                    
-                betai = materials[mesh.mapmat[i]].xstot * mesh.hx[i] * invmu;
-                Gi = alpha*betai*betai + (3.0+alpha)*betai + 6.0;
-                invGi = 1.0/Gi;
-
-                // compute cell  avg angular flux and first legendre moment
-                solver.psibar[u][i] =  ((3.0 + alpha*betai) * Qi[i] - alpha*Qhati[i]) * (invmu * invGi)
-                                         + (6.0 + alpha*betai) * invGi * solver.psie[u][i];
-                solver.psihat[u][i] =  (3.0 * Qi[i] + alpha*(1.0 + betai) * Qhati[i]) * (invmu * invGi)
-                                         - (3.0 * betai) * invGi * solver.psie[u][i];
-
-                // compute outgoing angular flux
-                solver.psie[u][i+1] = solver.psibar[u][i] + solver.psihat[u][i];                 
+        if ((l > 1 && core.acceleration == "QD") || core.acceleration == "none"){
+            for (int u = 0 ; u < quadrature.order ; u++){
+               invmu = 1.0 / quadrature.angle[u];
+               if (quadrature.angle[u] > 0){
+                  // positive sweep (x+)
+                  solver.psie[u].front() = psilbc[u];
+            
+                  // step through cells
+                  for (int i = 0 ; i < mesh.ncells ; i++){                                                    
+                    betai = materials[mesh.mapmat[i]].xstot * mesh.hx[i] * invmu;
+                    Gi = alpha*betai*betai + (3.0+alpha)*betai + 6.0;
+                    invGi = 1.0/Gi;
+                
+                    // compute cell  avg angular flux and first legendre moment
+                    solver.psibar[u][i] =  ((3.0 + alpha*betai) * Qi[i] - alpha*Qhati[i]) * (invmu * invGi)
+                                             + (6.0 + alpha*betai) * invGi * solver.psie[u][i];
+                    solver.psihat[u][i] =  (3.0 * Qi[i] + alpha*(1.0 + betai) * Qhati[i]) * (invmu * invGi)
+                                             - (3.0 * betai) * invGi * solver.psie[u][i];
+                
+                    // compute outgoing angular flux
+                    solver.psie[u][i+1] = solver.psibar[u][i] + solver.psihat[u][i];                 
+                  }
+               }
+               else{
+                  // negative sweep (x-)
+                  solver.psie[u].back() = psirbc[u];
+            
+                  // step through cells
+                  for (int i = mesh.ncells - 1; i >= 0; --i) {                                                 
+                    betai = materials[mesh.mapmat[i]].xstot * mesh.hx[i] * invmu;
+                    Gi = alpha*betai*betai - (3.0 + alpha) * betai + 6.0;
+                    invGi = 1.0/Gi;
+                
+                    // compute cell  avg angular flux and first legendre moment
+                    solver.psibar[u][i] =  ((alpha*betai - 3.0) * Qi[i] - alpha*Qhati[i]) * (invmu * invGi)
+                                             + (6.0 - alpha*betai) * invGi * solver.psie[u][i+1];
+                    solver.psihat[u][i] =  (3.0 * Qi[i] + alpha*(betai - 1.0) * Qhati[i]) * (invmu * invGi)
+                                             - (3.0 * betai) * invGi * solver.psie[u][i+1];
+                
+                    // compute outgoing angular flux
+                    solver.psie[u][i] = solver.psibar[u][i] - solver.psihat[u][i];                 
+                  }
+               }
+            }
+        
+            // update reflective edge fluxes with opposite ordinate's
+            if (mesh.mapbc.front() == 2 || mesh.mapbc.back() == 2){
+              for (int u = 0; u < quadrature.order; ++u) {
+                  if (mesh.mapbc.front() == 2 && quadrature.angle[u] > 0.0) {
+                       psilbc[u] = solver.psie[quadrature.reflmap[u]].front();
+                  }
+                  if (mesh.mapbc.back() == 2 && quadrature.angle[u] < 0.0) {
+                      psirbc[u] = solver.psie[quadrature.reflmap[u]].back();
+                  }
               }
-           }
-           else{
-              // negative sweep (x-)
-              solver.psie[u].back() = psirbc[u];
-
-              // step through cells
-              for (int i = mesh.ncells - 1; i >= 0; --i) {                                                 
-                betai = materials[mesh.mapmat[i]].xstot * mesh.hx[i] * invmu;
-                Gi = alpha*betai*betai - (3.0 + alpha) * betai + 6.0;
-                invGi = 1.0/Gi;
-
-                // compute cell  avg angular flux and first legendre moment
-                solver.psibar[u][i] =  ((alpha*betai - 3.0) * Qi[i] - alpha*Qhati[i]) * (invmu * invGi)
-                                         + (6.0 - alpha*betai) * invGi * solver.psie[u][i+1];
-                solver.psihat[u][i] =  (3.0 * Qi[i] + alpha*(betai - 1.0) * Qhati[i]) * (invmu * invGi)
-                                         - (3.0 * betai) * invGi * solver.psie[u][i+1];
-
-                // compute outgoing angular flux
-                solver.psie[u][i] = solver.psibar[u][i] - solver.psihat[u][i];                 
-              }
-           }
+            }
         }
 
-        // update reflective edge fluxes with opposite ordinate's
-        if (mesh.mapbc.front() == 2 || mesh.mapbc.back() == 2){
-          for (int u = 0; u < quadrature.order; ++u) {
-              if (mesh.mapbc.front() == 2 && quadrature.angle[u] > 0.0) {
-                   psilbc[u] = solver.psie[quadrature.reflmap[u]].front();
-              }
-              if (mesh.mapbc.back() == 2 && quadrature.angle[u] < 0.0) {
-                  psirbc[u] = solver.psie[quadrature.reflmap[u]].back();
-              }
-          }
-        }
+        update_flux_and_current(
+                quadrature,
+                mesh,
+                solver
+        );
 
-        if (core.acceleration == "none"){
-          update_flux_and_current(
-                  quadrature,
-                  mesh,
-                  solver
-          );
-        } else if (core.acceleration == "QD"){
+        if (core.acceleration == "QD"){
           // do QD acceleration
-          update_flux_and_current(
-                  quadrature,
-                  mesh,
-                  solver
-          );
           QD_acceleration(
                   core,
                   quadrature,
@@ -200,36 +199,23 @@ void SourceIteration::solve(
                   solver,
                   invlambda
           );
+          // do prolongation on scalar flux and first legendre moment
           for (int i = 0 ; i < mesh.ncells ; i++){
             solver.phibar[i] = solver.phibarLO[i];
+            solver.phihat[i] = (solver.phieLO[i+1] - solver.phieLO[i]) * 0.5;
             phieps[i] = fabs(solver.phibar[i]-phibarold[i]);
           }
         };
 
         // compute residuals
-        for (int i = 0 ; i < mesh.ncells ; i++){
-           // scheme
-           solver.sresidual[i] = solver.je[i+1] - solver.je[i] + materials[mesh.mapmat[i]].xstot * mesh.hx[i] * 
-                                 solver.phibar[i] - (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu *
-                                 materials[mesh.mapmat[i]].xsfiss) * mesh.hx[i] * phibarold[i] - 
-                                 materials[mesh.mapmat[i]].q * mesh.hx[i];
-           solver.sresidual1[i] = 3.0*(solver.je[i+1] + solver.je[i] - 2.0*solver.jbar[i]) +
-                                  alpha * materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
-                                  alpha * (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
-                                  mesh.hx[i] * phihatold[i];
-           // iterative
-           solver.iresidual[i] = solver.je[i+1] - solver.je[i] + materials[mesh.mapmat[i]].xstot * mesh.hx[i] * 
-                                 solver.phibar[i] - (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu *
-                                 materials[mesh.mapmat[i]].xsfiss) * mesh.hx[i] * solver.phibar[i] - 
-                                 materials[mesh.mapmat[i]].q * mesh.hx[i];
-           solver.iresidual1[i] = 3.0*(solver.je[i+1] + solver.je[i] - 2.0*solver.jbar[i]) +
-                                  alpha * materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
-                                  alpha * (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
-                                  mesh.hx[i] * solver.phihat[i];                              
-        }
+        compute_residuals(materials, mesh, solver, alpha, phihatold, phibarold);
 
         maxeps = *std::max_element(phieps.begin(), phieps.end());
-        rhol = maxeps / maxepslm2;
+        if (l > 2){
+            rhol = maxeps / maxepslm2;
+        } else {
+            rhol = 0.5;
+        }
         maxsres = *std::max_element(solver.sresidual.begin(), solver.sresidual.end());
         maxsres1 = *std::max_element(solver.sresidual1.begin(), solver.sresidual1.end());
         maxires = *std::max_element(solver.iresidual.begin(), solver.iresidual.end());
@@ -260,6 +246,14 @@ void SourceIteration::solve(
         }
     }
 
+    if (core.acceleration == "QD"){
+        // compute measure of transport effects
+        for (int i = 0; i < mesh.ncells ; i++){
+            const double invhx = 1.0 / mesh.hx[i];
+            solver.mLO[i] = fabs(1.0/3.0 - Eddbar[i]);
+            solver.mprimeLO[i] = fabs((Edde[i+1]-Edde[i]) * invhx);
+        }
+    }
     solver.k_inner += l;
 }
 
@@ -294,6 +288,38 @@ void SourceIteration::update_flux_and_current(
          solver.jhat[i] += quadrature.angle[u] * quadrature.weight[u] * solver.psihat[u][i];
        }              
        phieps[i] = fabs(solver.phibar[i]-phibarold[i]);
+    }
+
+}
+
+void SourceIteration::compute_residuals(
+        std::vector<materialData>& materials,
+        meshData& mesh,
+        solverData& solver,
+        double& alpha,
+        std::vector<double>& phihatold,
+        std::vector<double>& phibarold
+){
+
+    for (int i = 0 ; i < mesh.ncells ; i++){
+       // scheme
+       solver.sresidual[i] = solver.je[i+1] - solver.je[i] + materials[mesh.mapmat[i]].xstot * mesh.hx[i] * 
+                             solver.phibar[i] - (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu *
+                             materials[mesh.mapmat[i]].xsfiss) * mesh.hx[i] * phibarold[i] - 
+                             materials[mesh.mapmat[i]].q * mesh.hx[i];
+       solver.sresidual1[i] = 3.0*(solver.je[i+1] + solver.je[i] - 2.0*solver.jbar[i]) +
+                              alpha * materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
+                              alpha * (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
+                              mesh.hx[i] * phihatold[i];
+       // iterative
+       solver.iresidual[i] = solver.je[i+1] - solver.je[i] + materials[mesh.mapmat[i]].xstot * mesh.hx[i] * 
+                             solver.phibar[i] - (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu *
+                             materials[mesh.mapmat[i]].xsfiss) * mesh.hx[i] * solver.phibar[i] - 
+                             materials[mesh.mapmat[i]].q * mesh.hx[i];
+       solver.iresidual1[i] = 3.0*(solver.je[i+1] + solver.je[i] - 2.0*solver.jbar[i]) +
+                              alpha * materials[mesh.mapmat[i]].xstot * mesh.hx[i] * solver.phihat[i] - 
+                              alpha * (materials[mesh.mapmat[i]].xsscat + materials[mesh.mapmat[i]].nu * materials[mesh.mapmat[i]].xsfiss) *
+                              mesh.hx[i] * solver.phihat[i];                              
     }
 
 }
@@ -430,29 +456,17 @@ void SourceIteration::QD_acceleration(
         bvec[n-1] = JinR - CbfR * phiR;
     }
 
-    // Solve linear system with Gauss Elimination
-    for (int j = 0; j < n; j++){
-        int piv = j;
-        for (int r = j + 1; r < n; r++){
-            if (std::fabs(Amat[r][j]) > std::fabs(Amat[piv][j])) piv = r;
-        }
-        std::swap(Amat[j], Amat[piv]);
-        std::swap(bvec[j], bvec[piv]);
-        for (int r = j + 1; r < n; r++){
-            const double f = Amat[r][j] / Amat[j][j];
-            if (f == 0.0) continue;
-            for (int c = j; c < n; c++){
-              Amat[r][c] -= f * Amat[j][c];
-            }
-            bvec[r] -= f * bvec[j];
-        }
+    // solve linear system with the Thomas algorithm
+    for (int k = 1; k < n; k++){
+        const double f = Amat[k][k-1] / Amat[k-1][k-1];
+        Amat[k][k] -= f * Amat[k-1][k];
+        Amat[k][k-1] = 0.0;
+        bvec[k] -= f * bvec[k-1];
     }
-    for (int r = n - 1; r >= 0; r--){
-        double s = bvec[r];
-        for (int c = r + 1; c < n; c++){
-          s -= Amat[r][c] * phivec[c];
-        }
-        phivec[r] = s / Amat[r][r];
+    // back substitution
+    phivec[n-1] = bvec[n-1] / Amat[n-1][n-1];
+    for (int k = n - 2; k >= 0; k--){
+        phivec[k] = (bvec[k] - Amat[k][k+1] * phivec[k+1]) / Amat[k][k];
     }
 
     // update LO scalar flux values

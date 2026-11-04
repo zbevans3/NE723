@@ -15,6 +15,15 @@ public:
     );
     
 private:
+    void compute_residuals(
+            std::vector<materialData>& materials,
+            meshData& mesh,
+            solverData& solver,
+            double& alpha,
+            std::vector<double>& phihatold,
+            std::vector<double>& phibarold
+    );
+
     void update_flux_and_current(
             quadratureData& quadrature,
             meshData& mesh,

@@ -67,6 +67,8 @@ struct solverData {
     std::vector<double> phieLO;                   // cell edge scalar flux from low order solution
     std::vector<double> phibarLO;                 // cell average scalar flux from low order solution
     std::vector<double> jeLO;                     // cell edge current from low order solution
+    std::vector<double> mLO;                      // cell average value of the metric of transport effects
+    std::vector<double> mprimeLO;                 // cell average value of the derivative based metric of transport effects
     int k_inner = 0;
     int k_outer = 0;
     double lambda = 1.0;
