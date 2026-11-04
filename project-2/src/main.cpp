@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
     coreData core;
     meshData mesh;
     solverData solver;
+    QDData QD;
     quadratureData quadrature;
     std::vector<materialData> materials;
 
@@ -94,7 +95,7 @@ int main(int argc, char* argv[])
        double invlambda = solver.lambda;
 
        SourceIteration inner;
-       inner.solve(core, quadrature, materials, mesh, solver, invlambda);
+       inner.solve(core, quadrature, materials, mesh, solver, QD, invlambda);
 
        out.write_inner_iteration(outfile, core, solver);
 
@@ -116,7 +117,7 @@ int main(int argc, char* argv[])
 
        solver.lambda = 1.0;
        OuterIteration outer;
-       outer.solve(core, quadrature, materials, mesh, solver);
+       outer.solve(core, quadrature, materials, mesh, solver, QD);
 
        out.write_outer_iteration(outfile, core, solver);
 
@@ -139,7 +140,7 @@ int main(int argc, char* argv[])
        // perform initial solve
        solver.lambda = 1.0;
        OuterIteration outer;
-       outer.solve(core, quadrature, materials, mesh, solver);
+       outer.solve(core, quadrature, materials, mesh, solver, QD);
        kdiff = solver.lambda - core.kcrit;   
 
        std::cout << std::right
@@ -192,7 +193,7 @@ int main(int argc, char* argv[])
            reset_solution(quadrature, mesh, solver);
        
            solver.lambda = 1.0;
-           outer.solve(core, quadrature, materials, mesh, solver);
+           outer.solve(core, quadrature, materials, mesh, solver, QD);
        
            kdiff = solver.lambda - core.kcrit;
        
@@ -248,6 +249,13 @@ int main(int argc, char* argv[])
     out.write_scalar_flux(outfile, mesh, solver);
     out.write_current(outfile, mesh, solver);
     out.write_residuals(outfile, mesh, solver);    
+
+    if (core.acceleration != "none"){
+        // write LO solution data
+        out.write_QD_data(outfile, mesh, QD);
+        out.write_scalar_flux_LO(outfile, mesh, QD);
+        out.write_current_LO(outfile, mesh, QD);
+    }
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);

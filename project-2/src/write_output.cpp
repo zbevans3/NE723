@@ -9,12 +9,13 @@
 void Output::write_header(std::ofstream &outfile)
 {
     outfile << "===================================================================\n";
-    outfile << "=                            NE723 Project 1                      =\n";
+    outfile << "=                            NE723 Project 2                      =\n";
     outfile << "=                            Zachary Bevans                       =\n";
-    outfile << "=                              10/13/2026                         =\n";
+    outfile << "=                              11/12/2026                         =\n";
     outfile << "===================================================================\n";
     outfile << "Code to solve the steady state one group neutron transport equation\n";
-    outfile << " in 1D slab geometry the discrete ordinates method.\n";
+    outfile << " in 1D slab geometry using the discrete ordinates method \n";
+    outfile << " and Quasi-Diffusion (QD) acceleration.\n";
     outfile << "===================================================================\n\n";
 }
 
@@ -28,18 +29,18 @@ void Output::echo_input(
     outfile << " Input values:\n";
     outfile << "  [CORE]\n";
     outfile << std::left;
-    outfile << "    " << std::setw(12) << "search"   << core.search   << "\n";
-    outfile << "    " << std::setw(12) << "acceleration"   << core.acceleration   << "\n";
-    outfile << "    " << std::setw(12) << "itdebug"  << core.itdebug  << "\n";
-    outfile << "    " << std::setw(12) << "epsk"     << core.epsk     << "\n";
-    outfile << "    " << std::setw(12) << "epsflx"   << core.epsflx   << "\n";
-    outfile << "    " << std::setw(12) << "maxin"    << core.maxin    << "\n";
-    outfile << "    " << std::setw(12) << "maxout"   << core.maxout   << "\n";
-    outfile << "    " << std::setw(12) << "nregions" << core.nregions << "\n";
-    outfile << "    " << std::setw(12) << "nmat"     << core.nmat     << "\n";
-    outfile << "    " << std::setw(12) << "bcleft"   << std::setw(12) << core.bcleft   
+    outfile << "    " << std::setw(16) << "search"   << core.search   << "\n";
+    outfile << "    " << std::setw(16) << "acceleration"   << core.acceleration   << "\n";
+    outfile << "    " << std::setw(16) << "itdebug"  << core.itdebug  << "\n";
+    outfile << "    " << std::setw(16) << "epsk"     << core.epsk     << "\n";
+    outfile << "    " << std::setw(16) << "epsflx"   << core.epsflx   << "\n";
+    outfile << "    " << std::setw(16) << "maxin"    << core.maxin    << "\n";
+    outfile << "    " << std::setw(16) << "maxout"   << core.maxout   << "\n";
+    outfile << "    " << std::setw(16) << "nregions" << core.nregions << "\n";
+    outfile << "    " << std::setw(16) << "nmat"     << core.nmat     << "\n";
+    outfile << "    " << std::setw(16) << "bcleft"   << std::setw(16) << core.bcleft   
             << std::setw(6) << std::fixed << std::setprecision(3) << core.psileft  << "\n";
-    outfile << "    " << std::setw(12) << "bcright"   << std::setw(12) <<core.bcright   
+    outfile << "    " << std::setw(16) << "bcright"   << std::setw(16) <<core.bcright   
             << std::setw(5) << std::fixed << std::setprecision(3) << core.psiright  << "\n";
     outfile << std::right;
     outfile << "    nx ";
@@ -308,6 +309,153 @@ void Output::write_current(
             << std::fixed << std::setprecision(4);
     for (int i = 0; i < mesh.nedges; ++i) {
         outfile << std::setw(cell_width) << solver.je[i];
+    }
+    outfile << "\n\n";
+}
+
+void Output::write_scalar_flux_LO(
+    std::ofstream& outfile,
+    meshData& mesh,
+    QDData& QD)
+{
+    const std::string indent = "    ";
+    constexpr int label_width = 8;
+    constexpr int cell_width = 10;
+    const int table_width = cell_width * mesh.ncells;
+    const int table_width_e = cell_width * mesh.nedges;
+
+    outfile << " Cell average LO scalar flux solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(4);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << QD.phibarLO[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Cell edge LO scalar flux solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(4);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << QD.phieLO[i];
+    }
+    outfile << "\n\n";
+}
+
+void Output::write_current_LO(
+    std::ofstream& outfile,
+    meshData& mesh,
+    QDData& QD)
+{
+    const std::string indent = "    ";
+    constexpr int label_width = 8;
+    constexpr int cell_width = 10;
+    const int table_width_e = cell_width * mesh.nedges; 
+
+    outfile << " Cell edge LO current solution:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(4);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << QD.jeLO[i];
+    }
+    outfile << "\n\n";
+}
+
+void Output::write_QD_data(
+    std::ofstream& outfile,
+    meshData& mesh,
+    QDData& QD)
+{
+
+    const std::string indent = "    ";
+    constexpr int label_width = 8;
+    constexpr int cell_width = 10;
+    const int table_width = cell_width * mesh.ncells;
+    const int table_width_e = cell_width * mesh.nedges;
+
+    outfile << " QD data:\n";
+    outfile << std::left;
+    outfile << "  " << std::setw(24) << "Left boundary factor"    << QD.CbfL   << "\n";
+    outfile << "  " << std::setw(24) << "Right boundary factor"   << QD.CbfR   << "\n";
+    outfile << "\n";
+
+    outfile << " Cell average Eddington factor:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(4);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << QD.Eddbar[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Cell edge Eddington factor:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(4);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << QD.Edde[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Metric of transport effects:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(4);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << QD.mLO[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Derivative based metric of transport effects:\n";
+    outfile << indent << std::right
+            << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width)
+            << std::fixed << std::setprecision(4);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << QD.mprimeLO[i];
     }
     outfile << "\n\n";
 }

@@ -15,6 +15,7 @@ void SourceIteration::solve(
         std::vector<materialData>& materials,
         meshData& mesh,
         solverData& solver,
+        QDData& QD,
         double invlambda
     )    
 {
@@ -42,16 +43,16 @@ void SourceIteration::solve(
 
     if (core.acceleration == "QD"){
       // build QD data
-      CbfL = -0.5;
-      CbfR = 0.5;
-      Edde.assign(mesh.nedges, 1.0/3.0);
-      Eddbar.assign(mesh.ncells, 1.0/3.0);
+      QD.CbfL = -0.5;
+      QD.CbfR = 0.5;
+      QD.Edde.assign(mesh.nedges, 1.0/3.0);
+      QD.Eddbar.assign(mesh.ncells, 1.0/3.0);
       rhol = 0.5;
-      solver.phibarLO.assign(mesh.ncells, 0.0);
-      solver.phieLO.assign(mesh.nedges, 0.0);
-      solver.jeLO.assign(mesh.nedges, 0.0);
-      solver.mLO.assign(mesh.nedges, 0.0);
-      solver.mprimeLO.assign(mesh.nedges, 0.0);
+      QD.phibarLO.assign(mesh.ncells, 0.0);
+      QD.phieLO.assign(mesh.nedges, 0.0);
+      QD.jeLO.assign(mesh.nedges, 0.0);
+      QD.mLO.assign(mesh.ncells, 0.0);
+      QD.mprimeLO.assign(mesh.ncells, 0.0);
     }
 
     // assign coefficient that determines LD or LLD
@@ -189,6 +190,11 @@ void SourceIteration::solve(
                 solver
         );
 
+        // compute residuals of the transport solution
+        if (core.acceleration == "none" || l > 1){
+          compute_residuals(materials, mesh, solver, alpha, phihatold, phibarold);
+        }
+
         if (core.acceleration == "QD"){
           // do QD acceleration
           QD_acceleration(
@@ -197,18 +203,17 @@ void SourceIteration::solve(
                   materials,
                   mesh,
                   solver,
-                  invlambda
+                  QD,
+                  invlambda,
+                  l > 1
           );
           // do prolongation on scalar flux and first legendre moment
           for (int i = 0 ; i < mesh.ncells ; i++){
-            solver.phibar[i] = solver.phibarLO[i];
-            solver.phihat[i] = (solver.phieLO[i+1] - solver.phieLO[i]) * 0.5;
+            solver.phibar[i] = QD.phibarLO[i];
+            solver.phihat[i] = (QD.phieLO[i+1] - QD.phieLO[i]) * 0.5;
             phieps[i] = fabs(solver.phibar[i]-phibarold[i]);
           }
         };
-
-        // compute residuals
-        compute_residuals(materials, mesh, solver, alpha, phihatold, phibarold);
 
         maxeps = *std::max_element(phieps.begin(), phieps.end());
         if (l > 2){
@@ -250,8 +255,8 @@ void SourceIteration::solve(
         // compute measure of transport effects
         for (int i = 0; i < mesh.ncells ; i++){
             const double invhx = 1.0 / mesh.hx[i];
-            solver.mLO[i] = fabs(1.0/3.0 - Eddbar[i]);
-            solver.mprimeLO[i] = fabs((Edde[i+1]-Edde[i]) * invhx);
+            QD.mLO[i] = fabs(1.0/3.0 - QD.Eddbar[i]);
+            QD.mprimeLO[i] = fabs((QD.Edde[i+1]-QD.Edde[i]) * invhx);
         }
     }
     solver.k_inner += l;
@@ -330,9 +335,13 @@ void SourceIteration::QD_acceleration(
         std::vector<materialData>& materials,
         meshData& mesh,
         solverData& solver,
-        double invlambda
+        QDData& QD,
+        double invlambda,
+        bool update_factors
 ){
 
+  // compute E, C_L, C_R from the high-order solution
+  if (update_factors){
     // boundary factors
     double nsumL = 0.0;
     double dsumL = 0.0;
@@ -351,8 +360,8 @@ void SourceIteration::QD_acceleration(
             dsumR += weight * solver.psie[u].back();
         }
     }
-    CbfL = nsumL / dsumL;
-    CbfR = nsumR / dsumR;
+    QD.CbfL = nsumL / dsumL;
+    QD.CbfR = nsumR / dsumR;
 
     // Eddington factors at cell edges
     for (int i = 0; i < mesh.nedges; i++){
@@ -364,7 +373,7 @@ void SourceIteration::QD_acceleration(
             nsum += weight * mu * mu * solver.psie[u][i];
             dsum += weight * solver.psie[u][i];
         }
-        Edde[i] = nsum / dsum;
+        QD.Edde[i] = nsum / dsum;
     }
 
     // Eddington factors from cell averages
@@ -377,8 +386,9 @@ void SourceIteration::QD_acceleration(
             nsum += weight * mu * mu * solver.psibar[u][i];
             dsum += weight * solver.psibar[u][i];
         }
-        Eddbar[i] = nsum / dsum;
+        QD.Eddbar[i] = nsum / dsum;
     }
+  }
 
     // build linear system
     const int N = mesh.ncells;
@@ -402,7 +412,7 @@ void SourceIteration::QD_acceleration(
             q = qfis[i];
         }
         a1[i] = 2.0 / (materials[mesh.mapmat[i]].xstot * mesh.hx[i]);
-        a2[i] = 2.0 * a1[i] * Eddbar[i] + sigmar * mesh.hx[i];
+        a2[i] = 2.0 * a1[i] * QD.Eddbar[i] + sigmar * mesh.hx[i];
         b[i] = q * mesh.hx[i];
     }
 
@@ -424,36 +434,36 @@ void SourceIteration::QD_acceleration(
     }
 
     // left edge
-    Amat[0][0] = a1[0] * Edde[0];
-    Amat[0][1] = -a1[0] * Eddbar[0];
+    Amat[0][0] = a1[0] * QD.Edde[0];
+    Amat[0][1] = -a1[0] * QD.Eddbar[0];
     if (mesh.mapbc.front() != 2){
-        Amat[0][0] -= CbfL;
-        bvec[0] = JinL - CbfL * phiL;
+        Amat[0][0] -= QD.CbfL;
+        bvec[0] = JinL - QD.CbfL * phiL;
     }
 
     // balance equation
     for (int i = 0; i < N; i++){
         const int k = 2 * i + 1;
-        Amat[k][k-1] = -a1[i] * Edde[i];
+        Amat[k][k-1] = -a1[i] * QD.Edde[i];
         Amat[k][k] = a2[i];
-        Amat[k][k+1] = -a1[i] * Edde[i+1];
+        Amat[k][k+1] = -a1[i] * QD.Edde[i+1];
         bvec[k] = b[i];
     }
 
     // current continuity on interior
     for (int i = 0; i < N - 1; i++){
         const int k = 2 * i + 2;
-        Amat[k][k-1] = a1[i] * Eddbar[i];
-        Amat[k][k] = -(a1[i] + a1[i+1]) * Edde[i+1];
-        Amat[k][k+1] = a1[i+1] * Eddbar[i+1];
+        Amat[k][k-1] = a1[i] * QD.Eddbar[i];
+        Amat[k][k] = -(a1[i] + a1[i+1]) * QD.Edde[i+1];
+        Amat[k][k+1] = a1[i+1] * QD.Eddbar[i+1];
     }
 
     // right edge
-    Amat[n-1][n-2] = a1[N-1] * Eddbar[N-1];
-    Amat[n-1][n-1] = -a1[N-1] * Edde[N];
+    Amat[n-1][n-2] = a1[N-1] * QD.Eddbar[N-1];
+    Amat[n-1][n-1] = -a1[N-1] * QD.Edde[N];
     if (mesh.mapbc.back() != 2){
-        Amat[n-1][n-1] -= CbfR;
-        bvec[n-1] = JinR - CbfR * phiR;
+        Amat[n-1][n-1] -= QD.CbfR;
+        bvec[n-1] = JinR - QD.CbfR * phiR;
     }
 
     // solve linear system with the Thomas algorithm
@@ -471,15 +481,15 @@ void SourceIteration::QD_acceleration(
 
     // update LO scalar flux values
     for (int i = 0; i < N; i++) {
-        solver.phieLO[i]   = phivec[2 * i];
-        solver.phibarLO[i] = phivec[2 * i + 1];
+        QD.phieLO[i]   = phivec[2 * i];
+        QD.phibarLO[i] = phivec[2 * i + 1];
     }
-    solver.phieLO[N] = phivec[2 * N];
+    QD.phieLO[N] = phivec[2 * N];
 
     // update LO current values
     for (int i = 0; i < N; i++) {
-        solver.jeLO[i] = a1[i] * (Edde[i] * solver.phieLO[i] - Eddbar[i] * solver.phibarLO[i]);
+        QD.jeLO[i] = a1[i] * (QD.Edde[i] * QD.phieLO[i] - QD.Eddbar[i] * QD.phibarLO[i]);
     }
-    solver.jeLO[N] = a1[N-1] * (Eddbar[N-1] * solver.phibarLO[N-1] - Edde[N] * solver.phieLO[N]);
+    QD.jeLO[N] = a1[N-1] * (QD.Eddbar[N-1] * QD.phibarLO[N-1] - QD.Edde[N] * QD.phieLO[N]);
 
 }

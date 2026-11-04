@@ -16,7 +16,8 @@ void OuterIteration::solve(
         quadratureData& quadrature,
         std::vector<materialData>& materials,
         meshData& mesh,
-        solverData& solver
+        solverData& solver,
+        QDData& QD
         )    
 {
 
@@ -76,7 +77,7 @@ void OuterIteration::solve(
             invlambda = 1.0 / solver.lambda;
     
             // do inner iteration
-            inner.solve(core, quadrature, materials, mesh, solver, invlambda);          
+            inner.solve(core, quadrature, materials, mesh, solver, QD, invlambda);          
     
             // compute new keff from new fission source
             sfistotnew = 0.0;

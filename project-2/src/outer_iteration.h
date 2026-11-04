@@ -10,7 +10,8 @@ public:
         quadratureData& quadrature,
         std::vector<materialData>& materials,
         meshData& mesh,
-        solverData& solver
+        solverData& solver,
+        QDData& QD
     );
 
 };

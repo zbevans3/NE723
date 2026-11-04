@@ -11,6 +11,7 @@ public:
         std::vector<materialData>& materials,
         meshData& mesh,
         solverData& solver,
+        QDData& QD,
         double invlambda
     );
     
@@ -36,7 +37,9 @@ private:
             std::vector<materialData>& materials,
             meshData& mesh,
             solverData& solver,
-            double invlambda
+            QDData& QD,
+            double invlambda,
+            bool update_factors
     );
 
     std::vector<double> phibarold;    // old scalar flux (l-1)
@@ -48,15 +51,8 @@ private:
     std::vector<double> phieps;       // array of scalar flux difference
     std::vector<double> qfis;         // array of fission source
     std::vector<double> qfishat;      // array of first moment fission source
-
-    // QD data
-    double CbfL;         // left edge boundary factor
-    double CbfR;         // right edge boundary factor
-    std::vector<double> Edde;         // Edge Eddington factor
-    std::vector<double> Eddbar;       // Cell average Eddington factor
-    std::vector<double> phiLOe;       // low-order edge scalar flux (nedges)
-    std::vector<double> phiLObar;     // low-order cell scalar flux (ncells)
     std::vector<double> JLOe;         // low-order edge current (nedges)
+
 };
 
 #endif

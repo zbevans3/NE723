@@ -23,11 +23,6 @@ public:
         std::vector<materialData>& materials
     );
 
-    void write_angular_flux(
-        std::ofstream &outfile,
-        meshData& mesh,
-        solverData& solver
-    );
 
     void write_angular_flux(
         std::ofstream& outfile,
@@ -48,6 +43,24 @@ public:
         solverData& solver
     );
 
+    void write_scalar_flux_LO(
+        std::ofstream& outfile,
+        meshData& mesh,
+        QDData& QD
+    );
+
+    void write_current_LO(
+        std::ofstream& outfile,
+        meshData& mesh,
+        QDData& QD
+    );
+
+   void write_QD_data(
+        std::ofstream& outfile,
+        meshData& mesh,
+        QDData& QD
+    );
+
     void write_residuals(
         std::ofstream& outfile,
         meshData& mesh,
@@ -65,6 +78,7 @@ public:
         coreData& core,        
         solverData& solver
     );
+
 };
 
 #endif
