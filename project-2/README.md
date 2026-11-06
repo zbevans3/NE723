@@ -11,6 +11,8 @@
   - vacuum, reflective, or specified incoming flux BC
   - nonlinear source acceleration using Quasi Diffusion (QD)
 ````
+<img width="500" height="400" alt="image" src="https://github.com/user-attachments/assets/99c117bb-9cf7-424d-ba3b-f222b4676a5b" />
+
 # How to build
 simply change to src directory and type make (assuming you have a standard compiler).
 ```
