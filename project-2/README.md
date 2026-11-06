@@ -2,7 +2,7 @@
 # 1D slab neutron transport solver
 ````
   - discrete ordinates method (SN)
-  - linear discontinuous galerkin spatial discretization scheme
+  - Lumped linear discontinuous spatial discretization scheme
   - one-group
   - steady state
   - fixed source, eigenvalue, or critical size calculation
