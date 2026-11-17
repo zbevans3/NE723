@@ -353,7 +353,7 @@ void reset_solution(coreData& core,
         QD.jeLO.assign(mesh.nedges, 0.0);
         QD.mLO.assign(mesh.ncells, 0.0);
         QD.mprimeLO.assign(mesh.ncells, 0.0);
-    } else if (core.acceleration == "MGQD"){
+    } else if (core.acceleration == "MLQD"){
         // build ML QD data
         QDMG.Edde.assign(ngroups, std::vector<double>(mesh.nedges, 1.0/3.0));
         QDMG.Eddbar.assign(ngroups, std::vector<double>(mesh.ncells, 1.0/3.0));

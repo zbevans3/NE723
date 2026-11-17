@@ -211,22 +211,91 @@ void SourceIteration::solve(
         solver.k_inner += l;
     } else {
         // for MLQD, there are no source iterations
-        // build fission source from one group scalar flux
+       
+        // compute new zeroth and first moment source terms
         for (int i = 0 ; i < mesh.ncells ; i++){
-            // total fission rate in cell i, summed over all groups
-            double fis = 0.0;
-            double fishat = 0.0;
+            // compute flux wgtd fission prod xs
+            const materialData& mat = materials[mesh.mapmat[i]];
+            double phisum = 0.0;
+            double nusigfbar = 0.0;
             for (int gp = 0 ; gp < ngroups ; gp++){
-                fis += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phibar[gp][i];
-                fishat += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phihat[gp][i];
+                phisum += QDMG.phibar[gp][i];
+                nusigfbar += mat.nu[gp] * mat.xsfiss[gp] * QDMG.phibar[gp][i];
             }
-            // compute group contribution based on chi
+            nusigfbar /= phisum;
+
+            // compute flux wgtd in scatter XS and update sources using 1G LO flux
+            // prolongation operator for first moment is the same as standard QD
+            const double phi1g = QD1G.phibar[i];
+            const double phihat1g = 0.5 * (QD1G.phie[i+1] - QD1G.phie[i]);
             for (int g = 0 ; g < ngroups ; g++){
-                qfis[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fis;
-                qfishat[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fishat;
+                double sigsbar = 0.0;
+                for (int gp = 0 ; gp < ngroups ; gp++){
+                    sigsbar += mat.xsscatmat[gp][g] * QDMG.phibar[gp][i];
+                }
+                sigsbar /= phisum;
+                const double xs = sigsbar + invlambda * mat.xschi[g] * nusigfbar;
+                Qi[g][i] = 0.5 * mesh.hx[i] * xs * phi1g;
+                Qhati[g][i] = 0.5 * mesh.hx[i] * xs * phihat1g;
             }
         }
 
+        for (int g = 0 ; g < ngroups ; g++){
+            sweeper.sweep_group(g, Qi[g], Qhati[g], alpha, quadrature, materials, mesh, solver);
+            update_flux_and_current(quadrature, mesh, solver, g);
+        }
+
+        solver.k_inner += 1;
+
+        // compute group-wise E, C_L, C_R from the high-order solution
+        for (int g = 0 ; g < ngroups; g++){
+            // boundary factors
+            double nsumL = 0.0;
+            double dsumL = 0.0;
+            double nsumR = 0.0;
+            double dsumR = 0.0;
+            for (int u = 0; u < quadrature.order; u++){
+                const double weight  = quadrature.weight[u];
+                const double mu = quadrature.angle[u];
+                if (mu < 0.0){
+                    // leaving through the left boundary
+                    nsumL += weight * mu * solver.psie[g][u].front();
+                    dsumL += weight * solver.psie[g][u].front();
+                } else {
+                    // leaving through the right boundary
+                    nsumR += weight * mu * solver.psie[g][u].back();
+                    dsumR += weight * solver.psie[g][u].back();
+                }
+            }
+            QDMG.CbfL[g] = nsumL / dsumL;
+            QDMG.CbfR[g] = nsumR / dsumR;
+
+            // Eddington factors at cell edges
+            for (int i = 0; i < mesh.nedges; i++){
+                double nsum = 0.0;
+                double dsum = 0.0;
+                for (int u = 0; u < quadrature.order; u++){
+                    const double mu = quadrature.angle[u];
+                    const double weight = quadrature.weight[u];
+                    nsum += weight * mu * mu * solver.psie[g][u][i];
+                    dsum += weight * solver.psie[g][u][i];
+                }
+                QDMG.Edde[g][i] = nsum / dsum;
+            }
+
+            // Eddington factors from cell averages
+            for (int i = 0; i < mesh.ncells; i++){
+                double nsum = 0.0;
+                double dsum = 0.0;
+                for (int u = 0; u < quadrature.order; u++){
+                    const double mu = quadrature.angle[u];
+                    const double weight = quadrature.weight[u];
+                    nsum += weight * mu * mu * solver.psibar[g][u][i];
+                    dsum += weight * solver.psibar[g][u][i];
+                }
+                QDMG.Eddbar[g][i] = nsum / dsum;
+            }
+        }
     }
 }
 
