@@ -23,7 +23,7 @@ struct coreData {
     std::string scheme = "LD";               // discretization scheme; (LD, LLD)
     std::string bcleft = "vacuum";           // left boundary condition; (vacuum, reflective, incoming)
     std::string bcright = "vacuum";          // right boundary condition; (vacuum, reflective, incoming)
-    std::string acceleration = "none";       // acceleration scheme; (none, QD)
+    std::string acceleration = "none";       // acceleration scheme; (none, QD, MLQD)
     double psileft = 0.0;                    // angular flux at left boundary
     double psiright = 0.0;                   // angular flux at right boundary
 
@@ -83,7 +83,32 @@ struct QDData {
     std::vector<double> Eddbar;           // Cell average Eddington factor
     std::vector<double> mLO;              // cell average value of the metric of transport effects
     std::vector<double> mprimeLO;         // cell average value of the derivative based metric of transport effects
-    
+
+};
+
+struct QDMGData {
+    std::vector<std::vector<double>> Eddbar;    // Cell average group Eddington factor
+    std::vector<std::vector<double>> Edde;      // Cell edge group Eddington factor
+    std::vector<double> CbfL;                 // Left boundary group factor
+    std::vector<double> CbfR;                 // Right boundary group factor
+    std::vector<std::vector<double>> phibar;  // cell average group scalar flux from low order solution
+    std::vector<std::vector<double>> phie;    // cell edge group scalar flux from low order solution
+    std::vector<std::vector<double>> je;      // cell edge group current from low order solution
+};
+
+struct QD1GData {
+    std::vector<double> phibar;           // cell average scalar flux from one-group low order solution, including boundary values
+    std::vector<double> phie;             // cell edge scalar flux from one-group low order solution
+    std::vector<double> je;               // cell edge current from one-group low order solution
+    std::vector<double> xsabs;            // cell average one-group absorption cross section
+    std::vector<double> xsnusigf;         // cell average one-group nu times fission cross section
+    std::vector<double> Hm;               // cell edge H- factor
+    std::vector<double> Hp;               // cell edge H+ factor
+    std::vector<double> Am;               // cell edge A- factor
+    std::vector<double> Ap;               // cell edge A+ factor
+    double CbfL;                          // Left boundary factor
+    double CbfR;                          // Right boundary factor
+    double k = 1.0;                       // one-group eigenvalue
 };
 
 struct materialData {

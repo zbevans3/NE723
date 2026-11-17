@@ -18,6 +18,8 @@ void SourceIteration::solve(
         meshData& mesh,
         solverData& solver,
         QDData& QD,
+        QDMGData& QDMG,
+        QD1GData& QD1G,
         double invlambda
     )    
 {
@@ -37,21 +39,13 @@ void SourceIteration::solve(
     Qi.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
     Qhati.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
     phieps.assign(ngroups, std::vector<double>(mesh.ncells, 1.0e6));
+    qfis.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
+    qfishat.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
 
     TransportSweep sweeper;
 
     if (core.acceleration == "QD"){
-      // build QD data
-      QD.CbfL = -0.5;
-      QD.CbfR = 0.5;
-      QD.Edde.assign(mesh.nedges, 1.0/3.0);
-      QD.Eddbar.assign(mesh.ncells, 1.0/3.0);
       rhol = 0.5;
-      QD.phibarLO.assign(mesh.ncells, 0.0);
-      QD.phieLO.assign(mesh.nedges, 0.0);
-      QD.jeLO.assign(mesh.nedges, 0.0);
-      QD.mLO.assign(mesh.ncells, 0.0);
-      QD.mprimeLO.assign(mesh.ncells, 0.0);
     }
 
     // assign coefficient that determines LD or LLD
@@ -62,162 +56,178 @@ void SourceIteration::solve(
                 << std::setw(16) << "I moment res" << "\n";
     };
 
-
-    // compute initial fission source
-    // if eigenvalue calculation, then fission source is updated only on outer iteration
-    qfis.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
-    qfishat.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
-
-    for (int i = 0 ; i < mesh.ncells ; i++){
-        // total fission rate in cell i, summed over all groups
-        double fis = 0.0;
-        double fishat = 0.0;
-        for (int gp = 0 ; gp < ngroups ; gp++){
-            fis += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phibar[gp][i];
-            fishat += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phihat[gp][i];
-        }
-        // compute group contribution based on chi
-        for (int g = 0 ; g < ngroups ; g++){
-            qfis[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fis;
-            qfishat[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fishat;
-        }
-    }
-
-    while (l < core.maxin){
-        l++;
-        // update l-2 values
-        (l == 1) ? maxepslm2 = 1.0 : maxepslm2 = maxeps;
-
-        // update l-1 values
-        phibarold = solver.phibar;
-        phihatold = solver.phihat;
-
-        // fission source is updated every inner iteration only for fixed source problems
-        if (core.search == "fixed_source"){
-            for (int i = 0 ; i < mesh.ncells ; i++){
-                double fis = 0.0;
-                double fishat = 0.0;
-                for (int gp = 0 ; gp < ngroups ; gp++){
-                    fis  += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phibar[gp][i];
-                    fishat += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phihat[gp][i];
-                }
-                for (int g = 0 ; g < ngroups ; g++){
-                    qfis[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fis;
-                    qfishat[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fishat;
-                }
+    if (core.acceleration != "MLQD"){
+        // compute initial fission source
+        // if eigenvalue calculation, then fission source is updated only on outer iteration
+        for (int i = 0 ; i < mesh.ncells ; i++){
+            // total fission rate in cell i, summed over all groups
+            double fis = 0.0;
+            double fishat = 0.0;
+            for (int gp = 0 ; gp < ngroups ; gp++){
+                fis += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phibar[gp][i];
+                fishat += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phihat[gp][i];
+            }
+            // compute group contribution based on chi
+            for (int g = 0 ; g < ngroups ; g++){
+                qfis[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fis;
+                qfishat[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fishat;
             }
         }
 
-        // sweep group g, then update its fluxes
-        for (int g = 0 ; g < ngroups ; g++){
-          // computed l-th iterate source and 1st moment for group g
-          for (int i = 0 ; i < mesh.ncells ; i++){
-              double qexternal = core.search == "fixed_source" ? materials[mesh.mapmat[i]].q[g] : 0.0;
-              // scattering into group g
-              double scat = 0.0;
-              double scathat = 0.0;
-              for (int gp = 0 ; gp < ngroups ; gp++){
-                  scat += materials[mesh.mapmat[i]].xsscatmat[gp][g] * solver.phibar[gp][i];
-                  scathat += materials[mesh.mapmat[i]].xsscatmat[gp][g] * solver.phihat[gp][i];
+        while (l < core.maxin){
+            l++;
+            // update l-2 values
+            (l == 1) ? maxepslm2 = 1.0 : maxepslm2 = maxeps;
+
+            // update l-1 values
+            phibarold = solver.phibar;
+            phihatold = solver.phihat;
+
+            // fission source is updated every inner iteration only for fixed source problems
+            if (core.search == "fixed_source"){
+                for (int i = 0 ; i < mesh.ncells ; i++){
+                    double fis = 0.0;
+                    double fishat = 0.0;
+                    for (int gp = 0 ; gp < ngroups ; gp++){
+                        fis += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phibar[gp][i];
+                        fishat += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phihat[gp][i];
+                    }
+                    for (int g = 0 ; g < ngroups ; g++){
+                        qfis[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fis;
+                        qfishat[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fishat;
+                    }
+                }
+            }
+
+            // sweep group g, then update its fluxes
+            for (int g = 0 ; g < ngroups ; g++){
+              // computed l-th iterate source and 1st moment for group g
+              for (int i = 0 ; i < mesh.ncells ; i++){
+                  double qexternal = core.search == "fixed_source" ? materials[mesh.mapmat[i]].q[g] : 0.0;
+                  // scattering into group g
+                  double scat = 0.0;
+                  double scathat = 0.0;
+                  for (int gp = 0 ; gp < ngroups ; gp++){
+                      scat += materials[mesh.mapmat[i]].xsscatmat[gp][g] * solver.phibar[gp][i];
+                      scathat += materials[mesh.mapmat[i]].xsscatmat[gp][g] * solver.phihat[gp][i];
+                  }
+                  Qi[g][i] = 0.5 * mesh.hx[i] * (scat + qfis[g][i] + qexternal);
+                  Qhati[g][i] = 0.5 * mesh.hx[i] * (scathat + qfishat[g][i]);
               }
-              Qi[g][i] = 0.5 * mesh.hx[i] * (scat + qfis[g][i] + qexternal);
-              Qhati[g][i] = 0.5 * mesh.hx[i] * (scathat + qfishat[g][i]);
-          }
 
-          // perform mesh sweep for each ordinate
-          if ((l > 1 && core.acceleration == "QD") || core.acceleration == "none"){
-            sweeper.sweep_group(g, Qi[g], Qhati[g], alpha, quadrature, materials, mesh, solver);
-          }
+              // perform mesh sweep for each ordinate
+              if ((l > 1 && core.acceleration == "QD") || core.acceleration == "none"){
+                sweeper.sweep_group(g, Qi[g], Qhati[g], alpha, quadrature, materials, mesh, solver);
+              }
 
-          // update group g fluxes
-          update_flux_and_current(
-                  quadrature,
-                  mesh,
-                  solver,
-                  g
-          );
-        }
+              // update group g fluxes
+              update_flux_and_current(
+                      quadrature,
+                      mesh,
+                      solver,
+                      g
+              );
+            }
 
-        // compute residuals of the transport solution
-        if (core.acceleration == "none" || l > 1){
-          compute_residuals(core, materials, mesh, solver, alpha, invlambda);
-        }
+            // compute residuals of the transport solution
+            if (core.acceleration == "none" || l > 1){
+              compute_residuals(core, materials, mesh, solver, alpha, invlambda);
+            }
 
-        // if (core.acceleration == "QD"){
-        //   // do QD acceleration
-        //   QD_acceleration(
-        //           core,
-        //           quadrature,
-        //           materials,
-        //           mesh,
-        //           solver,
-        //           QD,
-        //           invlambda,
-        //           l > 1
-        //   );
-        //   // do prolongation on scalar flux and first legendre moment
-        //   for (int i = 0 ; i < mesh.ncells ; i++){
-        //     solver.phibar[i] = QD.phibarLO[i];
-        //     solver.phihat[i] = (QD.phieLO[i+1] - QD.phieLO[i]) * 0.5;
-        //     phieps[i] = fabs(solver.phibar[i]-phibarold[i]);
-        //   }
-        // };
+            // if (core.acceleration == "QD"){
+            //   // do QD acceleration
+            //   QD_acceleration(
+            //           core,
+            //           quadrature,
+            //           materials,
+            //           mesh,
+            //           solver,
+            //           QD,
+            //           invlambda,
+            //           l > 1
+            //   );
+            //   // do prolongation on scalar flux and first legendre moment
+            //   for (int i = 0 ; i < mesh.ncells ; i++){
+            //     solver.phibar[i] = QD.phibarLO[i];
+            //     solver.phihat[i] = (QD.phieLO[i+1] - QD.phieLO[i]) * 0.5;
+            //     phieps[i] = fabs(solver.phibar[i]-phibarold[i]);
+            //   }
+            // };
 
-        // max norms over all groups and cells
-        maxeps = 0.0;
-        maxsres = 0.0;
-        maxsres1 = 0.0;
-        maxires = 0.0;
-        maxires1 = 0.0;
-        for (int g = 0 ; g < ngroups ; g++){
-            for (int i = 0 ; i < mesh.ncells ; i++){
-                maxeps = std::max(maxeps, fabs(phieps[g][i]));
-                maxsres = std::max(maxsres, fabs(solver.sresidual[g][i]));
-                maxsres1 = std::max(maxsres1, fabs(solver.sresidual1[g][i]));
-                maxires = std::max(maxires, fabs(solver.iresidual[g][i]));
-                maxires1 = std::max(maxires1, fabs(solver.iresidual1[g][i]));
+            // max norms over all groups and cells
+            maxeps = 0.0;
+            maxsres = 0.0;
+            maxsres1 = 0.0;
+            maxires = 0.0;
+            maxires1 = 0.0;
+            for (int g = 0 ; g < ngroups ; g++){
+                for (int i = 0 ; i < mesh.ncells ; i++){
+                    maxeps = std::max(maxeps, fabs(phieps[g][i]));
+                    maxsres = std::max(maxsres, fabs(solver.sresidual[g][i]));
+                    maxsres1 = std::max(maxsres1, fabs(solver.sresidual1[g][i]));
+                    maxires = std::max(maxires, fabs(solver.iresidual[g][i]));
+                    maxires1 = std::max(maxires1, fabs(solver.iresidual1[g][i]));
+                }
+            }
+            if (l > 2){
+                rhol = maxeps / maxepslm2;
+            } else {
+                rhol = 0.5;
+            }
+
+            if (core.itdebug){
+              std::cout << std::right << std::scientific << std::setprecision(6)
+                        << std::setw(12) << l
+                        << std::setw(16) << maxeps
+                        << std::setw(16) << maxsres
+                        << std::setw(16) << maxsres1
+                        << std::setw(16) << maxires
+                        << std::setw(16) << maxires1
+                        << '\n';
+            }
+
+            solver.ilinfphi.push_back(maxeps);
+            solver.ispecrad.push_back(rhol);
+
+            stopcrit = core.epsflx * (1.0 / rhol - 1.0);
+            if (maxeps < stopcrit) {
+                if (core.search != "eigenvalue" && core.search != "critical_size"){
+                  std::cout << "Source iteration convergence reached in " << l << " iterations.\n";
+                  std::cout << "Final convergence criterion: "
+                            << std::scientific << std::setprecision(6) << stopcrit << "\n";
+                }
+                break;
             }
         }
-        if (l > 2){
-            rhol = maxeps / maxepslm2;
-        } else {
-            rhol = 0.5;
-        }
 
-        if (core.itdebug){
-          std::cout << std::right << std::scientific << std::setprecision(6)
-                    << std::setw(12) << l
-                    << std::setw(16) << maxeps
-                    << std::setw(16) << maxsres
-                    << std::setw(16) << maxsres1
-                    << std::setw(16) << maxires
-                    << std::setw(16) << maxires1
-                    << '\n';
-        }
-
-        solver.ilinfphi.push_back(maxeps);
-        solver.ispecrad.push_back(rhol);
-
-        stopcrit = core.epsflx * (1.0 / rhol - 1.0);
-        if (maxeps < stopcrit) {
-            if (core.search != "eigenvalue" && core.search != "critical_size"){
-              std::cout << "Source iteration convergence reached in " << l << " iterations.\n";
-              std::cout << "Final convergence criterion: "
-                        << std::scientific << std::setprecision(6) << stopcrit << "\n";
+        if (core.acceleration == "QD"){
+            // compute measure of transport effects
+            for (int i = 0; i < mesh.ncells ; i++){
+                const double invhx = 1.0 / mesh.hx[i];
+                QD.mLO[i] = fabs(1.0/3.0 - QD.Eddbar[i]);
+                QD.mprimeLO[i] = fabs((QD.Edde[i+1]-QD.Edde[i]) * invhx);
             }
-            break;
         }
-    }
+        solver.k_inner += l;
+    } else {
+        // for MLQD, there are no source iterations
+        // build fission source from one group scalar flux
+        for (int i = 0 ; i < mesh.ncells ; i++){
+            // total fission rate in cell i, summed over all groups
+            double fis = 0.0;
+            double fishat = 0.0;
+            for (int gp = 0 ; gp < ngroups ; gp++){
+                fis += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phibar[gp][i];
+                fishat += materials[mesh.mapmat[i]].nu[gp] * materials[mesh.mapmat[i]].xsfiss[gp] * solver.phihat[gp][i];
+            }
+            // compute group contribution based on chi
+            for (int g = 0 ; g < ngroups ; g++){
+                qfis[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fis;
+                qfishat[g][i] = invlambda * materials[mesh.mapmat[i]].xschi[g] * fishat;
+            }
+        }
 
-    if (core.acceleration == "QD"){
-        // compute measure of transport effects
-        for (int i = 0; i < mesh.ncells ; i++){
-            const double invhx = 1.0 / mesh.hx[i];
-            QD.mLO[i] = fabs(1.0/3.0 - QD.Eddbar[i]);
-            QD.mprimeLO[i] = fabs((QD.Edde[i+1]-QD.Edde[i]) * invhx);
-        }
     }
-    solver.k_inner += l;
 }
 
 void SourceIteration::update_flux_and_current(

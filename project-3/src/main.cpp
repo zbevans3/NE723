@@ -18,7 +18,10 @@
 void reset_solution(coreData& core,
         quadratureData& quadrature,
         meshData& mesh,
-        solverData& solver);
+        solverData& solver,
+        QDData& QD,
+        QDMGData& QDMG,
+        QD1GData& QD1G);
 
 int main(int argc, char* argv[])
 {
@@ -45,6 +48,8 @@ int main(int argc, char* argv[])
     meshData mesh;
     solverData solver;
     QDData QD;
+    QDMGData QDMG;
+    QD1GData QD1G;
     quadratureData quadrature;
     std::vector<materialData> materials;
 
@@ -85,7 +90,7 @@ int main(int argc, char* argv[])
     }
 
     // allocate solver arrays
-    reset_solution(core, quadrature, mesh, solver);
+    reset_solution(core, quadrature, mesh, solver, QD, QDMG, QD1G);
 
     // start solve
     if (core.search == "fixed_source"){
@@ -96,7 +101,15 @@ int main(int argc, char* argv[])
        double invlambda = solver.lambda;
 
        SourceIteration inner;
-       inner.solve(core, quadrature, materials, mesh, solver, QD, invlambda);
+       inner.solve(core, 
+                   quadrature,
+                   materials,
+                   mesh,
+                   solver,
+                   QD,
+                   QDMG,
+                   QD1G,
+                   invlambda);
 
        out.write_inner_iteration(outfile, core, solver);
 
@@ -119,7 +132,14 @@ int main(int argc, char* argv[])
 
        solver.lambda = 1.0;
        OuterIteration outer;
-       outer.solve(core, quadrature, materials, mesh, solver, QD);
+       outer.solve(core,
+                   quadrature,
+                   materials,
+                   mesh,
+                   solver,
+                   QD,
+                   QDMG,
+                   QD1G);
 
        out.write_outer_iteration(outfile, core, solver);
 
@@ -142,7 +162,15 @@ int main(int argc, char* argv[])
        // perform initial solve
        solver.lambda = 1.0;
        OuterIteration outer;
-       outer.solve(core, quadrature, materials, mesh, solver, QD);
+       outer.solve(core,
+                  quadrature,
+                  materials,
+                  mesh,
+                  solver,
+                  QD,
+                  QDMG,
+                  QD1G);
+                  
        kdiff = solver.lambda - core.kcrit;   
 
        std::cout << std::right
@@ -192,10 +220,17 @@ int main(int argc, char* argv[])
        
            // Build and solve at the new size.
            buildmesh.build(core, mesh);
-           reset_solution(core, quadrature, mesh, solver);
+           reset_solution(core, quadrature, mesh, solver, QD, QDMG, QD1G);
        
            solver.lambda = 1.0;
-           outer.solve(core, quadrature, materials, mesh, solver, QD);
+           outer.solve(core,
+                       quadrature,
+                       materials,
+                       mesh,
+                       solver,
+                       QD,
+                       QDMG,
+                       QD1G);
        
            kdiff = solver.lambda - core.kcrit;
        
@@ -253,10 +288,12 @@ int main(int argc, char* argv[])
     out.write_residuals(outfile, mesh, solver);    
 
     if (core.acceleration != "none"){
-        // write LO solution data
-        out.write_QD_data(outfile, mesh, QD);
-        out.write_scalar_flux_LO(outfile, mesh, QD);
-        out.write_current_LO(outfile, mesh, QD);
+        if (core.acceleration == "QD"){
+            // write LO solution data
+            out.write_QD_data(outfile, mesh, QD);
+            out.write_scalar_flux_LO(outfile, mesh, QD);
+            out.write_current_LO(outfile, mesh, QD);
+        }
     }
 
     auto stop = std::chrono::high_resolution_clock::now();
@@ -272,7 +309,11 @@ int main(int argc, char* argv[])
 void reset_solution(coreData& core,
         quadratureData& quadrature,
         meshData& mesh,
-        solverData& solver){
+        solverData& solver,
+        QDData& QD,
+        QDMGData& QDMG,
+        QD1GData& QD1G){
+
     int ngroups = core.ngroups;
     double leftval  = (mesh.mapbc.front() == 3) ? core.psileft  : 0.0;
     double rightval = (mesh.mapbc.back()  == 3) ? core.psiright : 0.0;
@@ -301,5 +342,39 @@ void reset_solution(coreData& core,
     solver.ilinfphi.clear();
     solver.olinfphi.clear();
     solver.linffsrc.clear();
+    if (core.acceleration == "QD"){
+        // build QD data
+        QD.CbfL = -0.5;
+        QD.CbfR = 0.5;
+        QD.Edde.assign(mesh.nedges, 1.0/3.0);
+        QD.Eddbar.assign(mesh.ncells, 1.0/3.0);
+        QD.phibarLO.assign(mesh.ncells, 0.0);
+        QD.phieLO.assign(mesh.nedges, 0.0);
+        QD.jeLO.assign(mesh.nedges, 0.0);
+        QD.mLO.assign(mesh.ncells, 0.0);
+        QD.mprimeLO.assign(mesh.ncells, 0.0);
+    } else if (core.acceleration == "MGQD"){
+        // build ML QD data
+        QDMG.Edde.assign(ngroups, std::vector<double>(mesh.nedges, 1.0/3.0));
+        QDMG.Eddbar.assign(ngroups, std::vector<double>(mesh.ncells, 1.0/3.0));
+        QDMG.phie.assign(ngroups, std::vector<double>(mesh.nedges, 1.0));
+        QDMG.phibar.assign(ngroups, std::vector<double>(mesh.ncells, 1.0));
+        QDMG.je.assign(ngroups, std::vector<double>(mesh.nedges, 1.0));
+        QDMG.CbfL.assign(ngroups, 0.0);
+        QDMG.CbfR.assign(ngroups, 0.0);
+
+        QD1G.phie.assign(mesh.nedges, 1.0);
+        QD1G.phibar.assign(mesh.ncells, 1.0);
+        QD1G.je.assign(mesh.nedges, 1.0);
+        QD1G.xsabs.assign(mesh.ncells, 0.0);
+        QD1G.xsnusigf.assign(mesh.ncells, 0.0);
+        QD1G.Hm.assign(mesh.nedges, 1.0/3.0);
+        QD1G.Hp.assign(mesh.nedges, 1.0/3.0);
+        QD1G.Am.assign(mesh.nedges, 1.0/3.0);
+        QD1G.Ap.assign(mesh.nedges, 1.0/3.0);
+        QD1G.CbfL = -0.5;
+        QD1G.CbfR = 0.5;
+
+    }
 
 }

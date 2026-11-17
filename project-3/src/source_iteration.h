@@ -12,6 +12,8 @@ public:
         meshData& mesh,
         solverData& solver,
         QDData& QD,
+        QDMGData& QDMG,
+        QD1GData& QD1G,
         double invlambda
     );
     

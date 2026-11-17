@@ -11,7 +11,9 @@ public:
         std::vector<materialData>& materials,
         meshData& mesh,
         solverData& solver,
-        QDData& QD
+        QDData& QD,
+        QDMGData& QDMG,
+        QD1GData& QD1G
     );
 
 };
