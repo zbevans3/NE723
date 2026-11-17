@@ -1,4 +1,5 @@
 #include "source_iteration.h"
+#include "transport_sweep.h"
 
 #include <algorithm>
 #include <numeric>
@@ -21,10 +22,6 @@ void SourceIteration::solve(
     )    
 {
     int l = 0;
-    double betai = 0;
-    double Gi = 0.0;
-    double invmu = 0.0;
-    double invGi = 0.0;
     double maxeps = 1.0e6;
     double maxepslm2 = 1.0e6;
     double rhol = 1.0e6;
@@ -39,9 +36,9 @@ void SourceIteration::solve(
     const int ngroups = core.ngroups;
     Qi.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
     Qhati.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
-    psilbc.assign(ngroups, std::vector<double>(quadrature.order, 0.0));
-    psirbc.assign(ngroups, std::vector<double>(quadrature.order, 0.0));
     phieps.assign(ngroups, std::vector<double>(mesh.ncells, 1.0e6));
+
+    TransportSweep sweeper;
 
     if (core.acceleration == "QD"){
       // build QD data
@@ -59,30 +56,6 @@ void SourceIteration::solve(
 
     // assign coefficient that determines LD or LLD
     double alpha = (core.scheme == "LD") ? 1.0 : 3.0;
-
-    // fill left boundary flux array
-    if (mesh.mapbc.front() == 1){
-      // vacuum bc
-      psilbc.assign(ngroups, std::vector<double>(quadrature.order, 0.0));
-    } else if (mesh.mapbc.front() == 2) {
-      // reflective bc, initalize to 0
-      psilbc.assign(ngroups, std::vector<double>(quadrature.order, 0.0));
-    } else if (mesh.mapbc.front() == 3){
-      // incoming
-      psilbc.assign(ngroups, std::vector<double>(quadrature.order, core.psileft));
-    }
-
-    // fill right boundary flux array
-    if (mesh.mapbc.back() == 1){
-      // vacuum bc
-      psirbc.assign(ngroups, std::vector<double>(quadrature.order, 0.0));
-    } else if (mesh.mapbc.back() == 2) {
-      // reflective bc, initialize to 0
-      psirbc.assign(ngroups, std::vector<double>(quadrature.order, 0.0));
-    } else if (mesh.mapbc.back() == 3){
-      // incoming
-      psirbc.assign(ngroups, std::vector<double>(quadrature.order, core.psiright));
-    }
     if (core.search == "fixed_source" && core.itdebug){
       std::cout << std::right << std::setw(12) << "  SI" << std::setw(16) << "Flux error" << std::setw(16) << "S flux res"
                 << std::setw(16) << "S moment res" << std::setw(16) << "I flux res"
@@ -153,61 +126,7 @@ void SourceIteration::solve(
 
           // perform mesh sweep for each ordinate
           if ((l > 1 && core.acceleration == "QD") || core.acceleration == "none"){
-            for (int u = 0 ; u < quadrature.order ; u++){
-               invmu = 1.0 / quadrature.angle[u];
-               if (quadrature.angle[u] > 0){
-                  // positive sweep (x+)
-                  solver.psie[g][u].front() = psilbc[g][u];
-
-                  // step through cells
-                  for (int i = 0 ; i < mesh.ncells ; i++){
-                    betai = materials[mesh.mapmat[i]].xstot[g] * mesh.hx[i] * invmu;
-                    Gi = alpha*betai*betai + (3.0+alpha)*betai + 6.0;
-                    invGi = 1.0/Gi;
-
-                    // compute cell  avg angular flux and first legendre moment
-                    solver.psibar[g][u][i] =  ((3.0 + alpha*betai) * Qi[g][i] - alpha*Qhati[g][i]) * (invmu * invGi)
-                                             + (6.0 + alpha*betai) * invGi * solver.psie[g][u][i];
-                    solver.psihat[g][u][i] =  (3.0 * Qi[g][i] + alpha*(1.0 + betai) * Qhati[g][i]) * (invmu * invGi)
-                                             - (3.0 * betai) * invGi * solver.psie[g][u][i];
-
-                    // compute outgoing angular flux
-                    solver.psie[g][u][i+1] = solver.psibar[g][u][i] + solver.psihat[g][u][i];
-                  }
-               }
-               else{
-                  // negative sweep (x-)
-                  solver.psie[g][u].back() = psirbc[g][u];
-
-                  // step through cells
-                  for (int i = mesh.ncells - 1; i >= 0; --i) {
-                    betai = materials[mesh.mapmat[i]].xstot[g] * mesh.hx[i] * invmu;
-                    Gi = alpha*betai*betai - (3.0 + alpha) * betai + 6.0;
-                    invGi = 1.0/Gi;
-
-                    // compute cell  avg angular flux and first legendre moment
-                    solver.psibar[g][u][i] =  ((alpha*betai - 3.0) * Qi[g][i] - alpha*Qhati[g][i]) * (invmu * invGi)
-                                             + (6.0 - alpha*betai) * invGi * solver.psie[g][u][i+1];
-                    solver.psihat[g][u][i] =  (3.0 * Qi[g][i] + alpha*(betai - 1.0) * Qhati[g][i]) * (invmu * invGi)
-                                             - (3.0 * betai) * invGi * solver.psie[g][u][i+1];
-
-                    // compute outgoing angular flux
-                    solver.psie[g][u][i] = solver.psibar[g][u][i] - solver.psihat[g][u][i];
-                  }
-               }
-            }
-
-            // update reflective edge fluxes with opposite ordinate's
-            if (mesh.mapbc.front() == 2 || mesh.mapbc.back() == 2){
-              for (int u = 0; u < quadrature.order; ++u) {
-                  if (mesh.mapbc.front() == 2 && quadrature.angle[u] > 0.0) {
-                       psilbc[g][u] = solver.psie[g][quadrature.reflmap[u]].front();
-                  }
-                  if (mesh.mapbc.back() == 2 && quadrature.angle[u] < 0.0) {
-                      psirbc[g][u] = solver.psie[g][quadrature.reflmap[u]].back();
-                  }
-              }
-            }
+            sweeper.sweep_group(g, Qi[g], Qhati[g], alpha, quadrature, materials, mesh, solver);
           }
 
           // update group g fluxes

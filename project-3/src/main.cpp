@@ -15,7 +15,7 @@
 #include <numeric>
 #include <chrono>
 
-void reset_solution(int ngroups,
+void reset_solution(coreData& core,
         quadratureData& quadrature,
         meshData& mesh,
         solverData& solver);
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
     }
 
     // allocate solver arrays
-    reset_solution(core.ngroups, quadrature, mesh, solver);
+    reset_solution(core, quadrature, mesh, solver);
 
     // start solve
     if (core.search == "fixed_source"){
@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
        
            // Build and solve at the new size.
            buildmesh.build(core, mesh);
-           reset_solution(core.ngroups, quadrature, mesh, solver);
+           reset_solution(core, quadrature, mesh, solver);
        
            solver.lambda = 1.0;
            outer.solve(core, quadrature, materials, mesh, solver, QD);
@@ -269,16 +269,20 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-void reset_solution(int ngroups,
+void reset_solution(coreData& core,
         quadratureData& quadrature,
         meshData& mesh,
         solverData& solver){
-
+    int ngroups = core.ngroups;
+    double leftval  = (mesh.mapbc.front() == 3) ? core.psileft  : 0.0;
+    double rightval = (mesh.mapbc.back()  == 3) ? core.psiright : 0.0;
     std::vector<std::vector<double>> psi_edge(quadrature.order, std::vector<double>(mesh.nedges, 1.0));
     std::vector<std::vector<double>> psi_cell(quadrature.order, std::vector<double>(mesh.ncells, 1.0));
     solver.psie.assign(ngroups, psi_edge);
     solver.psibar.assign(ngroups, psi_cell);
     solver.psihat.assign(ngroups, psi_cell);
+    solver.psilbc.assign(ngroups, std::vector<double>(quadrature.order, leftval));
+    solver.psirbc.assign(ngroups, std::vector<double>(quadrature.order, rightval));
     solver.phie.assign(ngroups, std::vector<double>(mesh.nedges, 1.0));
     solver.phibar.assign(ngroups, std::vector<double>(mesh.ncells, 1.0));
     solver.phihat.assign(ngroups, std::vector<double>(mesh.ncells, 1.0));

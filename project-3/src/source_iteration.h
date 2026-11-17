@@ -47,8 +47,6 @@ private:
     std::vector<std::vector<double>> phihatold;    // old first moment of scalar flux
     std::vector<std::vector<double>> Qi;           // l-th iterate of fission, scattering + fixed source
     std::vector<std::vector<double>> Qhati;        // l-th iterate of fission, scattering first moment of source  
-    std::vector<std::vector<double>> psilbc;       // array holding left boundary angular flux values (per ordinate)
-    std::vector<std::vector<double>> psirbc;       // array holding right boundary angular flux values (per ordinate)
     std::vector<std::vector<double>> phieps;       // array of scalar flux difference
     std::vector<std::vector<double>> qfis;         // array of fission source
     std::vector<std::vector<double>> qfishat;      // array of first moment fission source

@@ -2,7 +2,7 @@ CXX      = g++
 CXXFLAGS = -O3  -Wall -Wextra -MMD -MP
 
 SRC    = main.cpp read_input.cpp build_mesh.cpp write_output.cpp \
-         source_iteration.cpp outer_iteration.cpp
+         source_iteration.cpp transport_sweep.cpp outer_iteration.cpp
 OBJ    = $(SRC:.cpp=.o)
 DEP    = $(OBJ:.o=.d)
 TARGET = project-3.exe

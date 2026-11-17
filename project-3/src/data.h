@@ -45,6 +45,8 @@ struct solverData {
     std::vector<std::vector<std::vector<double>>> psie;    // cell edge angular flux (ngroups, nangles, nedges)
     std::vector<std::vector<std::vector<double>>> psibar;  // cell average angular flux (ngroups, nangles, ncells)
     std::vector<std::vector<std::vector<double>>> psihat;  // first moment of angular flux (ngroups, nangles, ncells)
+    std::vector<std::vector<double>> psilbc;      // left BC edge angular flux (ngroups, nangles)
+    std::vector<std::vector<double>> psirbc;      // right BC edge angular flux (ngroups, nangles)
     std::vector<std::vector<double>> phie;        // cell edge scalar flux (ngroups, nedges)
     std::vector<std::vector<double>> phibar;      // cell average scalar flux (ngroups, ncells)
     std::vector<std::vector<double>> phihat;      // first moment of scalar flux (ngroups, ncells)
