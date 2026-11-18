@@ -211,7 +211,8 @@ void SourceIteration::solve(
         solver.k_inner += l;
     } else {
         // for MLQD, there are no source iterations
-       
+        qupscat.assign(ngroups, std::vector<double>(mesh.ncells, 0.0));
+
         // compute new zeroth and first moment source terms
         for (int i = 0 ; i < mesh.ncells ; i++){
             // compute flux wgtd fission prod xs
@@ -228,16 +229,25 @@ void SourceIteration::solve(
             // prolongation operator for first moment is the same as standard QD
             const double phi1g = QD1G.phibar[i];
             const double phihat1g = 0.5 * (QD1G.phie[i+1] - QD1G.phie[i]);
+
             for (int g = 0 ; g < ngroups ; g++){
                 double sigsbar = 0.0;
                 for (int gp = 0 ; gp < ngroups ; gp++){
                     sigsbar += mat.xsscatmat[gp][g] * QDMG.phibar[gp][i];
                 }
                 sigsbar /= phisum;
-                const double xs = sigsbar + invlambda * mat.xschi[g] * nusigfbar;
-                Qi[g][i] = 0.5 * mesh.hx[i] * xs * phi1g;
-                Qhati[g][i] = 0.5 * mesh.hx[i] * xs * phihat1g;
+                qfis[g][i] = invlambda * mat.xschi[g] * nusigfbar * phi1g;
+                qfishat[g][i] = invlambda * mat.xschi[g] * nusigfbar * phihat1g;
+                Qi[g][i] = 0.5 * mesh.hx[i] * (sigsbar * phi1g + qfis[g][i]);
+                Qhati[g][i] = 0.5 * mesh.hx[i] * (sigsbar * phihat1g + qfishat[g][i]);
+                
+                // compute upscatter source
+                for (int gp = g + 1 ; gp < ngroups ; gp++){
+                    qupscat[g][i] += mat.xsscatmat[gp][g] * QDMG.phibar[gp][i];
+                }
+                qupscat[g][i] *= phi1g / phisum;
             }
+
         }
 
         for (int g = 0 ; g < ngroups ; g++){
@@ -295,6 +305,115 @@ void SourceIteration::solve(
                 }
                 QDMG.Eddbar[g][i] = nsum / dsum;
             }
+        }
+
+        // build linear system and solve by group
+        const int N = mesh.ncells;
+        const int n = 2 * N + 1; 
+        for (int g = 0; g < core.ngroups; g++){
+
+            // reset coefficient matrix
+            Amat.assign(n, std::vector<double>(n, 0.0));
+            bvec.assign(n, 0.0);
+            phivec.assign(n, 0.0);
+            a1.assign(N, 0.0);
+            a2.assign(N,0.0);
+            b.assign(N,0.0);
+
+            // compute removal XS, fission source term, and scattering terms
+            for (int i = 0; i < N; i++){
+                const materialData& mat = materials[mesh.mapmat[i]];
+                // removal xs
+                double sigmar = mat.xstot[g] - mat.xsscatmat[g][g];
+
+                // downscatter term
+                double qds = 0.0;
+                for (int gp = 0 ; gp < g ; gp++){
+                    qds += mat.xsscatmat[gp][g] * QDMG.phibar[gp][i];
+                }
+
+                const double q = qds + qupscat[g][i] + qfis[g][i];
+                a1[i] = 2.0 / (mat.xstot[g] * mesh.hx[i]);
+                a2[i] = 2.0 * a1[i] * QDMG.Eddbar[g][i] + sigmar * mesh.hx[i];
+                b[i] = q * mesh.hx[i];
+            }   
+
+            // compute transport consistent boundary fluxes and currents
+            double phiL = 0.0;
+            double JinL = 0.0;
+            double phiR = 0.0;
+            double JinR = 0.0;
+            for (int u = 0; u < quadrature.order; u++){
+                const double weight = quadrature.weight[u];
+                const double mu = quadrature.angle[u];
+                if (mu > 0.0){
+                    phiL += weight * solver.psilbc[g][u];
+                    JinL += weight * mu * solver.psilbc[g][u];
+                } else {
+                    phiR += weight * solver.psirbc[g][u];
+                    JinR += weight * mu * solver.psirbc[g][u];
+                }
+            }
+
+            // left edge
+            Amat[0][0] = a1[0] * QDMG.Edde[g][0];
+            Amat[0][1] = -a1[0] * QDMG.Eddbar[g][0];
+            if (mesh.mapbc.front() != 2){
+                Amat[0][0] -= QDMG.CbfL[g];
+                bvec[0] = JinL - QDMG.CbfL[g] * phiL;
+            }   
+
+            // balance equation
+            for (int i = 0; i < N; i++){
+                const int k = 2 * i + 1;
+                Amat[k][k-1] = -a1[i] * QDMG.Edde[g][i];
+                Amat[k][k] = a2[i];
+                Amat[k][k+1] = -a1[i] * QDMG.Edde[g][i+1];
+                bvec[k] = b[i];
+            }   
+
+            // current continuity on interior
+            for (int i = 0; i < N - 1; i++){
+                const int k = 2 * i + 2;
+                Amat[k][k-1] = a1[i] * QDMG.Eddbar[g][i];
+                Amat[k][k] = -(a1[i] + a1[i+1]) * QDMG.Edde[g][i+1];
+                Amat[k][k+1] = a1[i+1] * QDMG.Eddbar[g][i+1];
+            }   
+
+            // right edge
+            Amat[n-1][n-2] = a1[N-1] * QDMG.Eddbar[g][N-1];
+            Amat[n-1][n-1] = -a1[N-1] * QDMG.Edde[g][N];
+            if (mesh.mapbc.back() != 2){
+                Amat[n-1][n-1] -= QDMG.CbfR[g];
+                bvec[n-1] = JinR - QDMG.CbfR[g] * phiR;
+            }
+
+            // solve linear system with the Thomas algorithm
+            for (int k = 1; k < n; k++){
+                const double f = Amat[k][k-1] / Amat[k-1][k-1];
+                Amat[k][k] -= f * Amat[k-1][k];
+                Amat[k][k-1] = 0.0;
+                bvec[k] -= f * bvec[k-1];
+            }
+            // back substitution
+            phivec[n-1] = bvec[n-1] / Amat[n-1][n-1];
+            for (int k = n - 2; k >= 0; k--){
+                phivec[k] = (bvec[k] - Amat[k][k+1] * phivec[k+1]) / Amat[k][k];
+            }
+
+            // update group scalar flux values
+            for (int i = 0; i < N; i++) {
+                QDMG.phie[g][i] = phivec[2 * i];
+                QDMG.phibar[g][i] = phivec[2 * i + 1];
+            }
+            QDMG.phie[g][N] = phivec[2 * N];
+
+            // update group current values
+            for (int i = 0; i < N; i++) {
+                QDMG.je[g][i] = a1[i] * (QDMG.Edde[g][i] * QDMG.phie[g][i] - QDMG.Eddbar[g][i] * QDMG.phibar[g][i]);
+            }
+            QDMG.je[g][N] = a1[N-1] * (QDMG.Eddbar[g][N-1] * QDMG.phibar[g][N-1] - QDMG.Edde[g][N] * QDMG.phie[g][N]);
+
         }
     }
 }

@@ -52,7 +52,14 @@ private:
     std::vector<std::vector<double>> phieps;       // array of scalar flux difference
     std::vector<std::vector<double>> qfis;         // array of fission source
     std::vector<std::vector<double>> qfishat;      // array of first moment fission source
-    std::vector<double> JLOe;         // low-order edge current (nedges)
+    std::vector<double> JLOe;                      // low-order edge current (nedges)
+    std::vector<std::vector<double>> qupscat;      // upscattering source
+    std::vector<std::vector<double>> Amat;
+    std::vector<double> bvec;
+    std::vector<double> phivec;
+    std::vector<double> a1;
+    std::vector<double> a2;
+    std::vector<double> b;
 
 };
 
