@@ -4,18 +4,9 @@
 #include "data.h"
 
 class OuterIteration {
-public:
-    void solve(
-        coreData& core,
-        quadratureData& quadrature,
-        std::vector<materialData>& materials,
-        meshData& mesh,
-        solverData& solver,
-        QDData& QD,
-        QDMGData& QDMG,
-        QD1GData& QD1G
-    );
-
+  public:
+    void solve(coreData &core, quadratureData &quadrature, std::vector<materialData> &materials, meshData &mesh,
+               solverData &solver, QDData &QD, QDMGData &QDMG, QD1GData &QD1G);
 };
 
 #endif

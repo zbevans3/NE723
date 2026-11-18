@@ -3,11 +3,8 @@
 
 #include "data.h"
 class Mesh {
-public:
-    void build(
-        coreData& core,
-        meshData& mesh
-    );
+  public:
+    void build(coreData &core, meshData &mesh);
 };
 
 #endif
