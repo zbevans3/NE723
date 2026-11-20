@@ -292,7 +292,8 @@ void reset_solution(coreData &core, quadratureData &quadrature, meshData &mesh, 
         QD1G.phibar.assign(mesh.ncells, 1.0);
         QD1G.je.assign(mesh.nedges, 1.0);
         QD1G.xsabs.assign(mesh.ncells, 0.0);
-        QD1G.xsnusigf.assign(mesh.ncells, 0.0);
+        QD1G.xsfiss.assign(mesh.ncells, 0.0);
+        QD1G.nu.assign(mesh.ncells, 0.0);
         QD1G.Hm.assign(mesh.nedges, 1.0 / 3.0);
         QD1G.Hp.assign(mesh.nedges, 1.0 / 3.0);
         QD1G.Am.assign(mesh.nedges, 1.0 / 3.0);

@@ -26,7 +26,9 @@ class SourceIteration {
     std::vector<std::vector<double>> qfishat;   // array of first moment fission source
     std::vector<double> JLOe;                   // low-order edge current (nedges)
     std::vector<std::vector<double>> qupscat;   // upscattering source
-    std::vector<std::vector<double>> Amat;
+    std::vector<double> Al;
+    std::vector<double> Ad;
+    std::vector<double> Au;
     std::vector<double> bvec;
     std::vector<double> phivec;
     std::vector<double> a1;

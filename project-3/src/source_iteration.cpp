@@ -294,7 +294,9 @@ void SourceIteration::solve(coreData &core, quadratureData &quadrature, std::vec
         for (int g = 0; g < core.ngroups; g++) {
 
             // reset coefficient matrix
-            Amat.assign(n, std::vector<double>(n, 0.0));
+            Al.assign(n, 0.0);
+            Ad.assign(n, 0.0);
+            Au.assign(n, 0.0);
             bvec.assign(n, 0.0);
             phivec.assign(n, 0.0);
             a1.assign(N, 0.0);
@@ -337,49 +339,49 @@ void SourceIteration::solve(coreData &core, quadratureData &quadrature, std::vec
             }
 
             // left edge
-            Amat[0][0] = a1[0] * QDMG.Edde[g][0];
-            Amat[0][1] = -a1[0] * QDMG.Eddbar[g][0];
+            Ad[0] = a1[0] * QDMG.Edde[g][0];
+            Au[0] = -a1[0] * QDMG.Eddbar[g][0];
             if (mesh.mapbc.front() != 2) {
-                Amat[0][0] -= QDMG.CbfL[g];
+                Ad[0] -= QDMG.CbfL[g];
                 bvec[0] = JinL - QDMG.CbfL[g] * phiL;
             }
 
             // balance equation
             for (int i = 0; i < N; i++) {
                 const int k = 2 * i + 1;
-                Amat[k][k - 1] = -a1[i] * QDMG.Edde[g][i];
-                Amat[k][k] = a2[i];
-                Amat[k][k + 1] = -a1[i] * QDMG.Edde[g][i + 1];
+                Al[k] = -a1[i] * QDMG.Edde[g][i];
+                Ad[k] = a2[i];
+                Au[k] = -a1[i] * QDMG.Edde[g][i + 1];
                 bvec[k] = b[i];
             }
 
             // current continuity on interior
             for (int i = 0; i < N - 1; i++) {
                 const int k = 2 * i + 2;
-                Amat[k][k - 1] = a1[i] * QDMG.Eddbar[g][i];
-                Amat[k][k] = -(a1[i] + a1[i + 1]) * QDMG.Edde[g][i + 1];
-                Amat[k][k + 1] = a1[i + 1] * QDMG.Eddbar[g][i + 1];
+                Al[k] = a1[i] * QDMG.Eddbar[g][i];
+                Ad[k] = -(a1[i] + a1[i + 1]) * QDMG.Edde[g][i + 1];
+                Au[k] = a1[i + 1] * QDMG.Eddbar[g][i + 1];
             }
 
             // right edge
-            Amat[n - 1][n - 2] = a1[N - 1] * QDMG.Eddbar[g][N - 1];
-            Amat[n - 1][n - 1] = -a1[N - 1] * QDMG.Edde[g][N];
+            Al[n - 1] = a1[N - 1] * QDMG.Eddbar[g][N - 1];
+            Ad[n - 1] = -a1[N - 1] * QDMG.Edde[g][N];
             if (mesh.mapbc.back() != 2) {
-                Amat[n - 1][n - 1] -= QDMG.CbfR[g];
+                Ad[n - 1] -= QDMG.CbfR[g];
                 bvec[n - 1] = JinR - QDMG.CbfR[g] * phiR;
             }
 
             // solve linear system with the Thomas algorithm
             for (int k = 1; k < n; k++) {
-                const double f = Amat[k][k - 1] / Amat[k - 1][k - 1];
-                Amat[k][k] -= f * Amat[k - 1][k];
-                Amat[k][k - 1] = 0.0;
+                const double f = Al[k] / Ad[k - 1];
+                Ad[k] -= f * Au[k - 1];
+                Al[k] = 0.0;
                 bvec[k] -= f * bvec[k - 1];
             }
             // back substitution
-            phivec[n - 1] = bvec[n - 1] / Amat[n - 1][n - 1];
+            phivec[n - 1] = bvec[n - 1] / Ad[n - 1];
             for (int k = n - 2; k >= 0; k--) {
-                phivec[k] = (bvec[k] - Amat[k][k + 1] * phivec[k + 1]) / Amat[k][k];
+                phivec[k] = (bvec[k] - Au[k] * phivec[k + 1]) / Ad[k];
             }
 
             // update group scalar flux values

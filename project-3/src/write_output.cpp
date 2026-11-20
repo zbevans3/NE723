@@ -582,6 +582,7 @@ void Output::write_outer_iteration(std::ofstream &outfile, coreData &core, solve
 
     outfile << " Power iteration summary:\n";
     outfile << "    Total number of iterations: " << niter << '\n';
+    outfile << "    Total number of inner iterations: " << solver.k_inner << '\n';
     outfile << indent << std::left << std::setw(9) << "Iteration" << std::right << std::setw(cell_width) << "keff"
             << std::setw(cell_width) << "keff error" << std::setw(cell_width) << "flux error" << std::setw(cell_width)
             << "rho flux" << std::setw(cell_width) << "fsource error" << '\n';

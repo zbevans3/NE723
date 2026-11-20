@@ -100,7 +100,8 @@ struct QD1GData {
     std::vector<double> phie;   // cell edge scalar flux from one-group low order solution
     std::vector<double> je;     // cell edge current from one-group low order solution
     std::vector<double> xsabs;  // cell average one-group absorption cross section
-    std::vector<double> xsnusigf; // cell average one-group nu times fission cross section
+    std::vector<double> xsfiss; // cell average one-group fission cross section
+    std::vector<double> nu;      // cell average one-group nu
     std::vector<double> Hm;       // cell edge H- factor
     std::vector<double> Hp;       // cell edge H+ factor
     std::vector<double> Am;       // cell edge A- factor

@@ -227,17 +227,6 @@ void Input::read_material(std::ifstream &file, const coreData &core, std::vector
                 mat.xsabs.push_back(xs);
             }
         } else if (card == "scattering") {
-            // the full matrix goes on the next ngroups lines, so nothing may follow the card itself
-            // (only skip whitespace if not already at the end, otherwise the stream is marked failed)
-            if (!ss.eof()) {
-                ss >> std::ws;
-                if (!ss.eof()) {
-                    throw std::runtime_error("Material " + std::to_string(id) +
-                                             ": scattering needs the full matrix "
-                                             "(ngroups rows on the lines after the scattering card)");
-                }
-            }
-
             {
                 // full matrix: the next ngroups lines are the rows of the matrix,
                 // row g = scattering from group g into each group gp (same layout as C5G7 tables)
@@ -245,17 +234,9 @@ void Input::read_material(std::ifstream &file, const coreData &core, std::vector
                 for (int g = 0; g < _ngroups; g++) {
                     std::string row;
                     std::getline(file, row);
-                    const auto rcomment = row.find('!');
-                    if (rcomment != std::string::npos) {
-                        row.erase(rcomment);
-                    }
                     std::istringstream sr(row);
                     for (int gp = 0; gp < _ngroups; gp++) {
-                        if (!(sr >> mat.xsscatmat[g][gp])) {
-                            throw std::runtime_error("Material " + std::to_string(id) + ": scattering matrix row " +
-                                                     std::to_string(g + 1) + " needs " + std::to_string(_ngroups) +
-                                                     " values");
-                        }
+                        sr >> mat.xsscatmat[g][gp];
                     }
                     // keep the within-group value in xsscat as well
                     mat.xsscat.push_back(mat.xsscatmat[g][g]);
