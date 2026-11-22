@@ -27,6 +27,10 @@ class Output {
 
     void write_QD_data(std::ofstream &outfile, meshData &mesh, QDData &QD);
 
+    void write_QDMG_data(std::ofstream &outfile, meshData &mesh, QDMGData &QDMG);
+
+    void write_QD1G_data(std::ofstream &outfile, meshData &mesh, QD1GData &QD1G);
+
     void write_residuals(std::ofstream &outfile, meshData &mesh, solverData &solver);
 
     void write_inner_iteration(std::ofstream &outfile, coreData &core, solverData &solver);

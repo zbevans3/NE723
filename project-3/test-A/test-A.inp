@@ -1,7 +1,7 @@
 [CORE]
   search eigenvalue
   scheme LLD
-  acceleration none
+  acceleration MLQD
 
   ngroups 7
 

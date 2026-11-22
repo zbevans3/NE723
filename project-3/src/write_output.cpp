@@ -53,59 +53,54 @@ void Output::echo_input(std::ofstream &outfile, coreData &core, quadratureData &
     outfile << "  [MATERIAL]\n";
     // label column is 14 wide, each group column is 13 wide
     int _ngroups = core.ngroups;
-    outfile << std::scientific << std::setprecision(5);
+    outfile << std::scientific << std::setprecision(7);
     for (int i = 0; i < core.nmat; i++) {
         outfile << "    material " << materials[i].id << "\n";
         outfile << "    " << std::left << std::setw(14) << "group" << std::right;
         for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << g + 1;
+            outfile << std::setw(16) << g + 1;
         }
         outfile << "\n";
         outfile << "    " << std::left << std::setw(14) << "total" << std::right;
         for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << materials[i].xstot[g];
+            outfile << std::setw(16) << materials[i].xstot[g];
         }
         outfile << "\n";
         outfile << "    " << std::left << std::setw(14) << "absorption" << std::right;
         for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << materials[i].xsabs[g];
-        }
-        outfile << "\n";
-        outfile << "    " << std::left << std::setw(14) << "scattering" << std::right;
-        for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << materials[i].xsscat[g];
+            outfile << std::setw(16) << materials[i].xsabs[g];
         }
         outfile << "\n";
         outfile << "    " << std::left << std::setw(14) << "fission" << std::right;
         for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << materials[i].xsfiss[g];
+            outfile << std::setw(16) << materials[i].xsfiss[g];
         }
         outfile << "\n";
         outfile << "    " << std::left << std::setw(14) << "nu" << std::right;
         for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << materials[i].nu[g];
+            outfile << std::setw(16) << materials[i].nu[g];
         }
         outfile << "\n";
         outfile << "    " << std::left << std::setw(14) << "chi" << std::right;
         for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << materials[i].xschi[g];
+            outfile << std::setw(16) << materials[i].xschi[g];
         }
         outfile << "\n";
         outfile << "    " << std::left << std::setw(14) << "fixed_source" << std::right;
         for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << materials[i].q[g];
+            outfile << std::setw(16) << materials[i].q[g];
         }
         outfile << "\n";
         outfile << "    scattering matrix (row = from group, column = to group)\n";
         outfile << "    " << std::left << std::setw(14) << "from \\ to" << std::right;
         for (int g = 0; g < _ngroups; g++) {
-            outfile << std::setw(13) << g + 1;
+            outfile << std::setw(16) << g + 1;
         }
         outfile << "\n";
         for (int g = 0; g < _ngroups; g++) {
             outfile << "    " << std::left << std::setw(14) << g + 1 << std::right;
             for (int gp = 0; gp < _ngroups; gp++) {
-                outfile << std::setw(13) << materials[i].xsscatmat[g][gp];
+                outfile << std::setw(16) << materials[i].xsscatmat[g][gp];
             }
             outfile << "\n";
         }
@@ -116,21 +111,21 @@ void Output::echo_input(std::ofstream &outfile, coreData &core, quadratureData &
     outfile << "    order " << std::setw(6) << std::right << quadrature.order << "\n";
     outfile << "    angle ";
     for (int i = 0; i < quadrature.order; i++) {
-        outfile << std::setw(10) << std::right << std::fixed << std::setprecision(6) << quadrature.angle[i];
+        outfile << std::setw(16) << std::right << std::scientific << std::setprecision(7) << quadrature.angle[i];
     }
     outfile << "\n";
     outfile << "    weight ";
     for (int i = 0; i < quadrature.order; i++) {
-        outfile << std::setw(10) << std::right << std::fixed << std::setprecision(6) << quadrature.weight[i];
+        outfile << std::setw(16) << std::right << std::scientific << std::setprecision(7) << quadrature.weight[i];
     }
     outfile << "\n";
-    outfile << "    sum of weights " << std::setw(10) << std::right << std::fixed << std::setprecision(6)
+    outfile << "    sum of weights " << std::setw(16) << std::right << std::scientific << std::setprecision(7)
             << std::accumulate(quadrature.weight.begin(), quadrature.weight.end(), 0.0) << "\n";
     double wsum = 0.0;
     for (int i = 0; i < quadrature.order; i++) {
         wsum += quadrature.angle[i] * quadrature.weight[i];
     }
-    outfile << "    sum of weight*angle " << std::setw(10) << std::right << std::fixed << std::setprecision(6) << wsum
+    outfile << "    sum of weight*angle " << std::setw(16) << std::right << std::scientific << std::setprecision(7) << wsum
             << "\n";
     outfile << "\n\n";
 }
@@ -140,24 +135,24 @@ void Output::write_mesh(std::ofstream &outfile, meshData &mesh, std::vector<mate
     outfile << " Cell information:\n";
     outfile << "    Number of cells: " << mesh.ncells << '\n';
 
-    outfile << std::right << std::setw(8) << "Cell" << std::setw(10) << "Material" << std::setw(15) << "Left edge"
-            << std::setw(15) << "Right edge" << std::setw(15) << "Center" << std::setw(15) << "Width" << '\n';
+    outfile << std::right << std::setw(8) << "Cell" << std::setw(10) << "Material" << std::setw(16) << "Left edge"
+            << std::setw(16) << "Right edge" << std::setw(16) << "Center" << std::setw(16) << "Width" << '\n';
 
-    outfile << "    " << std::string(74, '-') << '\n';
-    outfile << std::fixed << std::setprecision(6);
+    outfile << "    " << std::string(82, '-') << '\n';
+    outfile << std::scientific << std::setprecision(7);
 
     for (int i = 0; i < mesh.ncells; ++i) {
-        outfile << std::setw(8) << i + 1 << std::setw(10) << materials[mesh.mapmat[i]].id << std::setw(15)
-                << mesh.xloc[i] << std::setw(15) << mesh.xloc[i + 1] << std::setw(15) << mesh.xcenter[i]
-                << std::setw(15) << mesh.hx[i] << '\n';
+        outfile << std::setw(8) << i + 1 << std::setw(10) << materials[mesh.mapmat[i]].id << std::setw(16)
+                << mesh.xloc[i] << std::setw(16) << mesh.xloc[i + 1] << std::setw(16) << mesh.xcenter[i]
+                << std::setw(16) << mesh.hx[i] << '\n';
     }
 
     outfile << "\n Edge information:\n";
     outfile << "    Number of edges: " << mesh.nedges << "\n";
-    outfile << std::setw(8) << "Edge" << std::setw(15) << "Location" << std::setw(10) << "ibc" << '\n';
-    outfile << "    " << std::string(29, '-') << '\n';
+    outfile << std::setw(8) << "Edge" << std::setw(16) << "Location" << std::setw(10) << "ibc" << '\n';
+    outfile << "    " << std::string(34, '-') << '\n';
     for (int i = 0; i < mesh.nedges; ++i) {
-        outfile << std::setw(8) << i + 1 << std::setw(15) << mesh.xloc[i] << std::setw(10) << mesh.mapbc[i] << '\n';
+        outfile << std::setw(8) << i + 1 << std::setw(16) << mesh.xloc[i] << std::setw(10) << mesh.mapbc[i] << '\n';
     }
     outfile << '\n';
 }
@@ -165,8 +160,8 @@ void Output::write_mesh(std::ofstream &outfile, meshData &mesh, std::vector<mate
 void Output::write_angular_flux(std::ofstream &outfile, meshData &mesh, quadratureData &quadrature,
                                 solverData &solver) {
     const std::string indent = "    ";
-    constexpr int label_width = 8;
-    constexpr int cell_width = 15;
+    constexpr int label_width = 16;
+    constexpr int cell_width = 16;
     const int table_width = label_width + cell_width * mesh.ncells;
     const int table_width_e = label_width + cell_width * mesh.nedges;
     const int ngroups = solver.psibar.size();
@@ -179,10 +174,10 @@ void Output::write_angular_flux(std::ofstream &outfile, meshData &mesh, quadratu
         }
         outfile << '\n';
         outfile << indent << std::string(table_width, '-') << '\n';
-        outfile << std::scientific << std::setprecision(6);
+        outfile << std::scientific << std::setprecision(7);
         for (int u = 0; u < quadrature.order; ++u) {
-            outfile << indent << std::fixed << std::setprecision(4) << std::setw(label_width) << quadrature.angle[u]
-                    << std::scientific << std::setprecision(6);
+            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width) << quadrature.angle[u]
+                    << std::scientific << std::setprecision(7);
             for (int i = 0; i < mesh.ncells; ++i) {
                 outfile << std::setw(cell_width) << solver.psibar[g][u][i];
             }
@@ -199,10 +194,10 @@ void Output::write_angular_flux(std::ofstream &outfile, meshData &mesh, quadratu
         }
         outfile << '\n';
         outfile << indent << std::string(table_width, '-') << '\n';
-        outfile << std::scientific << std::setprecision(6);
+        outfile << std::scientific << std::setprecision(7);
         for (int u = 0; u < quadrature.order; ++u) {
-            outfile << indent << std::fixed << std::setprecision(4) << std::setw(label_width) << quadrature.angle[u]
-                    << std::scientific << std::setprecision(6);
+            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width) << quadrature.angle[u]
+                    << std::scientific << std::setprecision(7);
             for (int i = 0; i < mesh.ncells; ++i) {
                 outfile << std::setw(cell_width) << solver.psihat[g][u][i];
             }
@@ -219,10 +214,10 @@ void Output::write_angular_flux(std::ofstream &outfile, meshData &mesh, quadratu
         }
         outfile << '\n';
         outfile << indent << std::string(table_width_e, '-') << '\n';
-        outfile << std::scientific << std::setprecision(6);
+        outfile << std::scientific << std::setprecision(7);
         for (int u = 0; u < quadrature.order; ++u) {
-            outfile << indent << std::fixed << std::setprecision(4) << std::setw(label_width) << quadrature.angle[u]
-                    << std::scientific << std::setprecision(6);
+            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width) << quadrature.angle[u]
+                    << std::scientific << std::setprecision(7);
             for (int i = 0; i < mesh.nedges; ++i) {
                 outfile << std::setw(cell_width) << solver.psie[g][u][i];
             }
@@ -235,7 +230,7 @@ void Output::write_angular_flux(std::ofstream &outfile, meshData &mesh, quadratu
 void Output::write_scalar_flux(std::ofstream &outfile, meshData &mesh, solverData &solver) {
     const std::string indent = "    ";
     constexpr int label_width = 8;
-    constexpr int cell_width = 15;
+    constexpr int cell_width = 16;
     const int table_width = label_width + cell_width * mesh.ncells;
     const int table_width_e = label_width + cell_width * mesh.nedges;
     const int ngroups = solver.phibar.size();
@@ -247,7 +242,7 @@ void Output::write_scalar_flux(std::ofstream &outfile, meshData &mesh, solverDat
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << std::scientific << std::setprecision(6);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.ncells; ++i) {
@@ -264,7 +259,7 @@ void Output::write_scalar_flux(std::ofstream &outfile, meshData &mesh, solverDat
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << std::scientific << std::setprecision(6);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.ncells; ++i) {
@@ -281,7 +276,7 @@ void Output::write_scalar_flux(std::ofstream &outfile, meshData &mesh, solverDat
     }
     outfile << '\n';
     outfile << indent << std::string(table_width_e, '-') << '\n';
-    outfile << std::scientific << std::setprecision(6);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.nedges; ++i) {
@@ -295,7 +290,7 @@ void Output::write_scalar_flux(std::ofstream &outfile, meshData &mesh, solverDat
 void Output::write_current(std::ofstream &outfile, meshData &mesh, solverData &solver) {
     const std::string indent = "    ";
     constexpr int label_width = 8;
-    constexpr int cell_width = 15;
+    constexpr int cell_width = 16;
     const int table_width = label_width + cell_width * mesh.ncells;
     const int table_width_e = label_width + cell_width * mesh.nedges;
     const int ngroups = solver.jbar.size();
@@ -307,7 +302,7 @@ void Output::write_current(std::ofstream &outfile, meshData &mesh, solverData &s
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << std::scientific << std::setprecision(6);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.ncells; ++i) {
@@ -324,7 +319,7 @@ void Output::write_current(std::ofstream &outfile, meshData &mesh, solverData &s
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << std::scientific << std::setprecision(6);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.ncells; ++i) {
@@ -341,7 +336,7 @@ void Output::write_current(std::ofstream &outfile, meshData &mesh, solverData &s
     }
     outfile << '\n';
     outfile << indent << std::string(table_width_e, '-') << '\n';
-    outfile << std::scientific << std::setprecision(6);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.nedges; ++i) {
@@ -355,7 +350,7 @@ void Output::write_current(std::ofstream &outfile, meshData &mesh, solverData &s
 void Output::write_scalar_flux_LO(std::ofstream &outfile, meshData &mesh, QDData &QD) {
     const std::string indent = "    ";
     constexpr int label_width = 8;
-    constexpr int cell_width = 15;
+    constexpr int cell_width = 16;
     const int table_width = cell_width * mesh.ncells;
     const int table_width_e = cell_width * mesh.nedges;
 
@@ -366,7 +361,7 @@ void Output::write_scalar_flux_LO(std::ofstream &outfile, meshData &mesh, QDData
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(6);
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
     for (int i = 0; i < mesh.ncells; ++i) {
         outfile << std::setw(cell_width) << QD.phibarLO[i];
     }
@@ -379,7 +374,7 @@ void Output::write_scalar_flux_LO(std::ofstream &outfile, meshData &mesh, QDData
     }
     outfile << '\n';
     outfile << indent << std::string(table_width_e, '-') << '\n';
-    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(6);
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
     for (int i = 0; i < mesh.nedges; ++i) {
         outfile << std::setw(cell_width) << QD.phieLO[i];
     }
@@ -389,7 +384,7 @@ void Output::write_scalar_flux_LO(std::ofstream &outfile, meshData &mesh, QDData
 void Output::write_current_LO(std::ofstream &outfile, meshData &mesh, QDData &QD) {
     const std::string indent = "    ";
     constexpr int label_width = 8;
-    constexpr int cell_width = 15;
+    constexpr int cell_width = 16;
     const int table_width_e = cell_width * mesh.nedges;
 
     outfile << " Cell edge LO current solution:\n";
@@ -399,7 +394,7 @@ void Output::write_current_LO(std::ofstream &outfile, meshData &mesh, QDData &QD
     }
     outfile << '\n';
     outfile << indent << std::string(table_width_e, '-') << '\n';
-    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(6);
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
     for (int i = 0; i < mesh.nedges; ++i) {
         outfile << std::setw(cell_width) << QD.jeLO[i];
     }
@@ -410,13 +405,13 @@ void Output::write_QD_data(std::ofstream &outfile, meshData &mesh, QDData &QD) {
 
     const std::string indent = "    ";
     constexpr int label_width = 8;
-    constexpr int cell_width = 15;
+    constexpr int cell_width = 16;
     const int table_width = cell_width * mesh.ncells;
     const int table_width_e = cell_width * mesh.nedges;
 
     outfile << " QD data:\n";
     outfile << std::left;
-    outfile << std::scientific << std::setprecision(10);
+    outfile << std::scientific << std::setprecision(7);
     outfile << "  " << std::setw(24) << "Left boundary factor" << QD.CbfL << "\n";
     outfile << "  " << std::setw(24) << "Right boundary factor" << QD.CbfR << "\n";
     outfile << "\n";
@@ -428,7 +423,7 @@ void Output::write_QD_data(std::ofstream &outfile, meshData &mesh, QDData &QD) {
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(6);
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
     for (int i = 0; i < mesh.ncells; ++i) {
         outfile << std::setw(cell_width) << QD.Eddbar[i];
     }
@@ -441,7 +436,7 @@ void Output::write_QD_data(std::ofstream &outfile, meshData &mesh, QDData &QD) {
     }
     outfile << '\n';
     outfile << indent << std::string(table_width_e, '-') << '\n';
-    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(6);
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
     for (int i = 0; i < mesh.nedges; ++i) {
         outfile << std::setw(cell_width) << QD.Edde[i];
     }
@@ -454,7 +449,7 @@ void Output::write_QD_data(std::ofstream &outfile, meshData &mesh, QDData &QD) {
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(6);
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
     for (int i = 0; i < mesh.ncells; ++i) {
         outfile << std::setw(cell_width) << QD.mLO[i];
     }
@@ -467,9 +462,171 @@ void Output::write_QD_data(std::ofstream &outfile, meshData &mesh, QDData &QD) {
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(6);
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
     for (int i = 0; i < mesh.ncells; ++i) {
         outfile << std::setw(cell_width) << QD.mprimeLO[i];
+    }
+    outfile << "\n\n";
+}
+
+void Output::write_QDMG_data(std::ofstream &outfile, meshData &mesh, QDMGData &QDMG) {
+
+    const std::string indent = "    ";
+    constexpr int label_width = 8;
+    constexpr int cell_width = 16;
+    const int table_width = label_width + cell_width * mesh.ncells;
+    const int table_width_e = label_width + cell_width * mesh.nedges;
+    const int ngroups = QDMG.phibar.size();
+
+    outfile << " Multigroup QD data:\n";
+    outfile << indent << std::right << std::setw(label_width) << "Group" << std::setw(cell_width) << "Left factor"
+            << std::setw(cell_width) << "Right factor" << '\n';
+    outfile << indent << std::string(label_width + 2 * cell_width, '-') << '\n';
+    outfile << std::scientific << std::setprecision(7);
+    for (int g = 0; g < ngroups; ++g) {
+        outfile << indent << std::setw(label_width) << g + 1 << std::setw(cell_width) << QDMG.CbfL[g]
+                << std::setw(cell_width) << QDMG.CbfR[g] << '\n';
+    }
+    outfile << '\n';
+
+    outfile << " Cell average group Eddington factor:\n";
+    outfile << indent << std::right << std::setw(label_width) << "Group";
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << std::scientific << std::setprecision(7);
+    for (int g = 0; g < ngroups; ++g) {
+        outfile << indent << std::setw(label_width) << g + 1;
+        for (int i = 0; i < mesh.ncells; ++i) {
+            outfile << std::setw(cell_width) << QDMG.Eddbar[g][i];
+        }
+        outfile << '\n';
+    }
+    outfile << '\n';
+
+    outfile << " Cell edge group Eddington factor:\n";
+    outfile << indent << std::right << std::setw(label_width) << "Group";
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << std::scientific << std::setprecision(7);
+    for (int g = 0; g < ngroups; ++g) {
+        outfile << indent << std::setw(label_width) << g + 1;
+        for (int i = 0; i < mesh.nedges; ++i) {
+            outfile << std::setw(cell_width) << QDMG.Edde[g][i];
+        }
+        outfile << '\n';
+    }
+    outfile << '\n';
+
+    outfile << " Cell average group LO scalar flux solution:\n";
+    outfile << indent << std::right << std::setw(label_width) << "Group";
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << std::scientific << std::setprecision(7);
+    for (int g = 0; g < ngroups; ++g) {
+        outfile << indent << std::setw(label_width) << g + 1;
+        for (int i = 0; i < mesh.ncells; ++i) {
+            outfile << std::setw(cell_width) << QDMG.phibar[g][i];
+        }
+        outfile << '\n';
+    }
+    outfile << '\n';
+
+    outfile << " Cell edge group LO scalar flux solution:\n";
+    outfile << indent << std::right << std::setw(label_width) << "Group";
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << std::scientific << std::setprecision(7);
+    for (int g = 0; g < ngroups; ++g) {
+        outfile << indent << std::setw(label_width) << g + 1;
+        for (int i = 0; i < mesh.nedges; ++i) {
+            outfile << std::setw(cell_width) << QDMG.phie[g][i];
+        }
+        outfile << '\n';
+    }
+    outfile << '\n';
+
+    outfile << " Cell edge group LO current solution:\n";
+    outfile << indent << std::right << std::setw(label_width) << "Group";
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << std::scientific << std::setprecision(7);
+    for (int g = 0; g < ngroups; ++g) {
+        outfile << indent << std::setw(label_width) << g + 1;
+        for (int i = 0; i < mesh.nedges; ++i) {
+            outfile << std::setw(cell_width) << QDMG.je[g][i];
+        }
+        outfile << '\n';
+    }
+    outfile << '\n';
+}
+
+void Output::write_QD1G_data(std::ofstream &outfile, meshData &mesh, QD1GData &QD1G) {
+
+    const std::string indent = "    ";
+    constexpr int label_width = 8;
+    constexpr int cell_width = 16;
+    const int table_width = cell_width * mesh.ncells;
+    const int table_width_e = cell_width * mesh.nedges;
+
+    outfile << " One-group QD data:\n";
+    outfile << std::left;
+    outfile << std::scientific << std::setprecision(7);
+    outfile << "  " << std::setw(24) << "One-group eigenvalue" << QD1G.k << "\n";
+    outfile << "  " << std::setw(24) << "Left boundary factor" << QD1G.CbfL << "\n";
+    outfile << "  " << std::setw(24) << "Right boundary factor" << QD1G.CbfR << "\n";
+    outfile << "\n";
+
+    outfile << " Cell average one-group LO scalar flux solution:\n";
+    outfile << indent << std::right << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << QD1G.phibar[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Cell edge one-group LO scalar flux solution:\n";
+    outfile << indent << std::right << std::setw(label_width);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << QD1G.phie[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Cell edge one-group LO current solution:\n";
+    outfile << indent << std::right << std::setw(label_width);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width_e, '-') << '\n';
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
+    for (int i = 0; i < mesh.nedges; ++i) {
+        outfile << std::setw(cell_width) << QD1G.je[i];
     }
     outfile << "\n\n";
 }
@@ -477,7 +634,7 @@ void Output::write_QD_data(std::ofstream &outfile, meshData &mesh, QDData &QD) {
 void Output::write_residuals(std::ofstream &outfile, meshData &mesh, solverData &solver) {
     const std::string indent = "    ";
     constexpr int label_width = 8;
-    constexpr int cell_width = 14;
+    constexpr int cell_width = 16;
     const int table_width = label_width + cell_width * mesh.ncells;
     const int ngroups = solver.sresidual.size();
 
@@ -488,7 +645,7 @@ void Output::write_residuals(std::ofstream &outfile, meshData &mesh, solverData 
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << std::scientific << std::setprecision(4);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.ncells; ++i) {
@@ -505,7 +662,7 @@ void Output::write_residuals(std::ofstream &outfile, meshData &mesh, solverData 
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << std::scientific << std::setprecision(4);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.ncells; ++i) {
@@ -522,7 +679,7 @@ void Output::write_residuals(std::ofstream &outfile, meshData &mesh, solverData 
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << std::scientific << std::setprecision(4);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.ncells; ++i) {
@@ -539,7 +696,7 @@ void Output::write_residuals(std::ofstream &outfile, meshData &mesh, solverData 
     }
     outfile << '\n';
     outfile << indent << std::string(table_width, '-') << '\n';
-    outfile << std::scientific << std::setprecision(4);
+    outfile << std::scientific << std::setprecision(7);
     for (int g = 0; g < ngroups; ++g) {
         outfile << indent << std::setw(label_width) << g + 1;
         for (int i = 0; i < mesh.ncells; ++i) {
@@ -553,7 +710,7 @@ void Output::write_residuals(std::ofstream &outfile, meshData &mesh, solverData 
 void Output::write_inner_iteration(std::ofstream &outfile, coreData &core, solverData &solver) {
 
     const std::string indent = "    ";
-    constexpr int cell_width = 14;
+    constexpr int cell_width = 16;
     const int table_width = cell_width * 2;
     const int niter = solver.ilinfphi.size();
 
@@ -563,12 +720,12 @@ void Output::write_inner_iteration(std::ofstream &outfile, coreData &core, solve
             << std::setw(cell_width) << "flux error" << '\n';
     outfile << indent << std::string(9 + table_width, '-') << '\n';
     for (int i = 0; i < niter; ++i) {
-        outfile << indent << std::setw(9) << i + 1 << std::setw(cell_width) << std::scientific << std::setprecision(6)
-                << solver.ispecrad[i] << std::setw(cell_width) << std::scientific << std::setprecision(6)
+        outfile << indent << std::setw(9) << i + 1 << std::setw(cell_width) << std::scientific << std::setprecision(7)
+                << solver.ispecrad[i] << std::setw(cell_width) << std::scientific << std::setprecision(7)
                 << solver.ilinfphi[i] << '\n';
     }
     double stopcrit1 = core.epsflx * (1.0 / solver.ispecrad.back() - 1.0);
-    outfile << "   Final flux criterion: " << std::scientific << std::setprecision(5) << std::setw(16) << stopcrit1
+    outfile << "   Final flux criterion: " << std::scientific << std::setprecision(7) << std::setw(16) << stopcrit1
             << "\n";
     outfile << "\n\n";
 }
@@ -576,7 +733,7 @@ void Output::write_inner_iteration(std::ofstream &outfile, coreData &core, solve
 void Output::write_outer_iteration(std::ofstream &outfile, coreData &core, solverData &solver) {
 
     const std::string indent = "    ";
-    constexpr int cell_width = 14;
+    constexpr int cell_width = 16;
     const int table_width = cell_width * 5;
     const int niter = solver.olinfphi.size();
 
@@ -588,18 +745,18 @@ void Output::write_outer_iteration(std::ofstream &outfile, coreData &core, solve
             << "rho flux" << std::setw(cell_width) << "fsource error" << '\n';
     outfile << indent << std::string(9 + table_width, '-') << '\n';
     for (int i = 0; i < niter; ++i) {
-        outfile << std::setw(9) << i + 1 << std::setw(cell_width) << std::scientific << std::setprecision(6)
-                << solver.keff[i] << std::setw(cell_width) << std::scientific << std::setprecision(6)
-                << solver.linfkeff[i] << std::setw(cell_width) << std::scientific << std::setprecision(6)
-                << solver.olinfphi[i] << std::setw(cell_width) << std::scientific << std::setprecision(6)
-                << solver.ospecrad[i] << std::setw(cell_width) << std::scientific << std::setprecision(6)
+        outfile << std::setw(9) << i + 1 << std::setw(cell_width) << std::scientific << std::setprecision(7)
+                << solver.keff[i] << std::setw(cell_width) << std::scientific << std::setprecision(7)
+                << solver.linfkeff[i] << std::setw(cell_width) << std::scientific << std::setprecision(7)
+                << solver.olinfphi[i] << std::setw(cell_width) << std::scientific << std::setprecision(7)
+                << solver.ospecrad[i] << std::setw(cell_width) << std::scientific << std::setprecision(7)
                 << solver.linffsrc[i] << '\n';
     }
     double stopcrit1 = core.epsk * (1.0 / solver.specradk.back() - 1.0);
     double stopcrit2 = core.epsflx * (1.0 / solver.ospecrad.back() - 1.0);
-    outfile << "   Final keff criterion: " << std::scientific << std::setprecision(5) << std::setw(16) << stopcrit1
+    outfile << "   Final keff criterion: " << std::scientific << std::setprecision(7) << std::setw(16) << stopcrit1
             << "\n";
-    outfile << "   Final flux criterion: " << std::scientific << std::setprecision(5) << std::setw(16) << stopcrit2
+    outfile << "   Final flux criterion: " << std::scientific << std::setprecision(7) << std::setw(16) << stopcrit2
             << "\n";
     outfile << "\n\n";
 }

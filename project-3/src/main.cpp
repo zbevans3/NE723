@@ -223,6 +223,9 @@ int main(int argc, char *argv[]) {
             out.write_QD_data(outfile, mesh, QD);
             out.write_scalar_flux_LO(outfile, mesh, QD);
             out.write_current_LO(outfile, mesh, QD);
+        } else if (core.acceleration == "MLQD") {
+            out.write_QDMG_data(outfile, mesh, QDMG);
+            out.write_QD1G_data(outfile, mesh, QD1G);
         }
     }
 
