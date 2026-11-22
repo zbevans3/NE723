@@ -125,8 +125,8 @@ void Output::echo_input(std::ofstream &outfile, coreData &core, quadratureData &
     for (int i = 0; i < quadrature.order; i++) {
         wsum += quadrature.angle[i] * quadrature.weight[i];
     }
-    outfile << "    sum of weight*angle " << std::setw(16) << std::right << std::scientific << std::setprecision(7) << wsum
-            << "\n";
+    outfile << "    sum of weight*angle " << std::setw(16) << std::right << std::scientific << std::setprecision(7)
+            << wsum << "\n";
     outfile << "\n\n";
 }
 
@@ -176,8 +176,8 @@ void Output::write_angular_flux(std::ofstream &outfile, meshData &mesh, quadratu
         outfile << indent << std::string(table_width, '-') << '\n';
         outfile << std::scientific << std::setprecision(7);
         for (int u = 0; u < quadrature.order; ++u) {
-            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width) << quadrature.angle[u]
-                    << std::scientific << std::setprecision(7);
+            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width)
+                    << quadrature.angle[u] << std::scientific << std::setprecision(7);
             for (int i = 0; i < mesh.ncells; ++i) {
                 outfile << std::setw(cell_width) << solver.psibar[g][u][i];
             }
@@ -196,8 +196,8 @@ void Output::write_angular_flux(std::ofstream &outfile, meshData &mesh, quadratu
         outfile << indent << std::string(table_width, '-') << '\n';
         outfile << std::scientific << std::setprecision(7);
         for (int u = 0; u < quadrature.order; ++u) {
-            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width) << quadrature.angle[u]
-                    << std::scientific << std::setprecision(7);
+            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width)
+                    << quadrature.angle[u] << std::scientific << std::setprecision(7);
             for (int i = 0; i < mesh.ncells; ++i) {
                 outfile << std::setw(cell_width) << solver.psihat[g][u][i];
             }
@@ -216,8 +216,8 @@ void Output::write_angular_flux(std::ofstream &outfile, meshData &mesh, quadratu
         outfile << indent << std::string(table_width_e, '-') << '\n';
         outfile << std::scientific << std::setprecision(7);
         for (int u = 0; u < quadrature.order; ++u) {
-            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width) << quadrature.angle[u]
-                    << std::scientific << std::setprecision(7);
+            outfile << indent << std::scientific << std::setprecision(7) << std::setw(label_width)
+                    << quadrature.angle[u] << std::scientific << std::setprecision(7);
             for (int i = 0; i < mesh.nedges; ++i) {
                 outfile << std::setw(cell_width) << solver.psie[g][u][i];
             }

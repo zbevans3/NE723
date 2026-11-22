@@ -101,14 +101,14 @@ struct QD1GData {
     std::vector<double> je;     // cell edge current from one-group low order solution
     std::vector<double> xsabs;  // cell average one-group absorption cross section
     std::vector<double> xsfiss; // cell average one-group fission cross section
-    std::vector<double> nu;      // cell average one-group nu
-    std::vector<double> Hm;       // cell edge H- factor
-    std::vector<double> Hp;       // cell edge H+ factor
-    std::vector<double> Am;       // cell edge A- factor
-    std::vector<double> Ap;       // cell edge A+ factor
-    double CbfL;                  // Left boundary factor
-    double CbfR;                  // Right boundary factor
-    double k = 1.0;               // one-group eigenvalue
+    std::vector<double> nu;     // cell average one-group nu
+    std::vector<double> Hm;     // cell edge H- factor
+    std::vector<double> Hp;     // cell edge H+ factor
+    std::vector<double> Am;     // cell edge A- factor
+    std::vector<double> Ap;     // cell edge A+ factor
+    double CbfL;                // Left boundary factor
+    double CbfR;                // Right boundary factor
+    double k = 1.0;             // one-group eigenvalue
 };
 
 struct materialData {

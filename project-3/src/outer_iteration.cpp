@@ -69,18 +69,18 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
         // do inner iteration
         inner.solve(core, quadrature, materials, mesh, solver, QD, QDMG, QD1G, invlambda);
 
-        if (core.acceleration == "MLQD"){
+        if (core.acceleration == "MLQD") {
             // solve 1G QD system
 
             // first, compute flux-weighted one group cross sections and C_L/C_R
             QD1G.xsabs.assign(mesh.ncells, 0.0);
             QD1G.xsfiss.assign(mesh.ncells, 0.0);
             QD1G.nu.assign(mesh.ncells, 0.0);
-            for (int i = 0 ; i < mesh.ncells ; i++){
+            for (int i = 0; i < mesh.ncells; i++) {
                 const materialData &mat = materials[mesh.mapmat[i]];
                 double phisum = 0.0;
-                double phifis = 0.0;         
-                 for (int g = 0 ; g < ngroups ; g++){
+                double phifis = 0.0;
+                for (int g = 0; g < ngroups; g++) {
                     QD1G.xsabs[i] += mat.xsabs[g] * QDMG.phibar[g][i];
                     QD1G.xsfiss[i] += mat.xsfiss[g] * QDMG.phibar[g][i];
                     QD1G.nu[i] += mat.nu[g] * mat.xsfiss[g] * QDMG.phibar[g][i];
@@ -89,7 +89,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                 }
                 QD1G.xsabs[i] /= phisum;
                 QD1G.xsfiss[i] /= phisum;
-                QD1G.nu[i] /= phifis;            
+                QD1G.nu[i] /= phifis;
             }
 
             // Compute 1G boundary factors
@@ -97,7 +97,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
             double phisumR = 0.0;
             double csumL = 0.0;
             double csumR = 0.0;
-            for (int g = 0 ; g < ngroups ; g++){
+            for (int g = 0; g < ngroups; g++) {
                 csumL += QDMG.CbfL[g] * QDMG.phie[g].front();
                 phisumL += QDMG.phie[g].front();
                 csumR += QDMG.CbfR[g] * QDMG.phie[g].back();
@@ -105,13 +105,13 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
             }
             QD1G.CbfL = (mesh.mapbc.front() != 2) ? csumL / phisumL : 0.0;
             QD1G.CbfR = (mesh.mapbc.back() != 2) ? csumR / phisumR : 0.0;
-           
+
             // compute Hm, Hp, Am, Ap
             QD1G.Hm.assign(mesh.nedges, 0.0);
             QD1G.Hp.assign(mesh.nedges, 0.0);
-            QD1G.Am.assign(mesh.nedges, 0.0); 
+            QD1G.Am.assign(mesh.nedges, 0.0);
             QD1G.Ap.assign(mesh.nedges, 0.0);
-            for (int i = 0 ; i <= mesh.ncells ; i++){
+            for (int i = 0; i <= mesh.ncells; i++) {
                 const int iL = (i == 0) ? 0 : i - 1;
                 const int iR = (i == mesh.ncells) ? mesh.ncells - 1 : i;
                 const materialData &matL = materials[mesh.mapmat[iL]];
@@ -124,7 +124,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                 double dsump = 0.0;
                 double nsumam = 0.0;
                 double nsumap = 0.0;
-                for (int g = 0 ; g < ngroups ; g++){
+                for (int g = 0; g < ngroups; g++) {
                     const double sigmat = (matL.xstot[g] * hL + matR.xstot[g] * hR) / (hL + hR);
                     const double Edde = QDMG.Edde[g][i];
                     const double phiL = (i == 0) ? QDMG.phie[g][0] : QDMG.phibar[g][iL];
@@ -161,14 +161,14 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
 
             // compute half-delta x
             hxe.assign(mesh.nedges, 0.0);
-            for (int i = 0 ; i <= N ; i++){
+            for (int i = 0; i <= N; i++) {
                 const double hL = (i == 0) ? 0.0 : mesh.hx[i - 1];
                 const double hR = (i == N) ? 0.0 : mesh.hx[i];
                 hxe[i] = 0.5 * (hL + hR);
             }
-            
+
             // compute coupling coefficients
-            for (int i = 0 ; i < N ; i++){
+            for (int i = 0; i < N; i++) {
                 a1[i] = -QD1G.Hm[i] / hxe[i];
                 a2[i] = QD1G.Hm[i + 1] / hxe[i + 1] + QD1G.Hp[i] / hxe[i] + QD1G.xsabs[i] * mesh.hx[i];
                 a3[i] = -QD1G.Hp[i + 1] / hxe[i + 1];
@@ -177,14 +177,14 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
             // left edge
             a1[0] = 0.0;
             a2[0] -= QD1G.Hp[0] / hxe[0];
-            if (mesh.mapbc.front() != 2){
+            if (mesh.mapbc.front() != 2) {
                 a2[0] -= QD1G.CbfL * QD1G.Hp[0] / (QD1G.Hm[0] - QD1G.CbfL * hxe[0]);
             }
 
             // right edge
             a3[N - 1] = 0.0;
             a2[N - 1] -= QD1G.Hm[N] / hxe[N];
-            if (mesh.mapbc.back() != 2){
+            if (mesh.mapbc.back() != 2) {
                 a2[N - 1] += QD1G.CbfR * QD1G.Hm[N] / (QD1G.Hp[N] + QD1G.CbfR * hxe[N]);
             }
 
@@ -194,7 +194,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
 
             phi1gold = QD1G.phibar;
             int l = 0;
-            while (l < core.maxin){
+            while (l < core.maxin) {
                 l++;
                 double lambda1gold = solver.lambda;
 
@@ -202,34 +202,34 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                 Al.assign(n, 0.0);
                 Ad.assign(n, 0.0);
                 Au.assign(n, 0.0);
-                for (int i = 0 ; i < N ; i++){
+                for (int i = 0; i < N; i++) {
                     Ad[i] = a2[i];
-                    if (i > 0){
+                    if (i > 0) {
                         Al[i] = a1[i];
                     }
-                    if (i < N - 1){
+                    if (i < N - 1) {
                         Au[i] = a3[i];
                     }
                 }
 
                 // fission source from previous iterate
-                for (int i = 0 ; i < N ; i++){
-                    invlambda = 1.0/ lambda1gold;
+                for (int i = 0; i < N; i++) {
+                    invlambda = 1.0 / lambda1gold;
                     b[i] = invlambda * QD1G.nu[i] * QD1G.xsfiss[i] * mesh.hx[i];
                     bvec[i] = b[i] * phi1gold[i];
                 }
 
                 // solve linear system with the Thomas algorithm
-                for (int k = 1; k < n; k++){
-                    const double f = Al[k] / Ad[k-1];
-                    Ad[k] -= f * Au[k-1];
+                for (int k = 1; k < n; k++) {
+                    const double f = Al[k] / Ad[k - 1];
+                    Ad[k] -= f * Au[k - 1];
                     Al[k] = 0.0;
-                    bvec[k] -= f * bvec[k-1];
+                    bvec[k] -= f * bvec[k - 1];
                 }
                 // back substitution
-                phivec[n-1] = bvec[n-1] / Ad[n-1];
-                for (int k = n - 2; k >= 0; k--){
-                    phivec[k] = (bvec[k] - Au[k] * phivec[k+1]) / Ad[k];
+                phivec[n - 1] = bvec[n - 1] / Ad[n - 1];
+                for (int k = n - 2; k >= 0; k--) {
+                    phivec[k] = (bvec[k] - Au[k] * phivec[k + 1]) / Ad[k];
                 }
 
                 // compute boundary leakages for eigenvalue
@@ -239,7 +239,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                 // compute new eigenvalue estimate
                 double sfis = 0.0;
                 double absr = 0.0;
-                for (int i = 0 ; i < N ; i++){
+                for (int i = 0; i < N; i++) {
                     sfis += QD1G.nu[i] * QD1G.xsfiss[i] * mesh.hx[i] * phivec[i];
                     absr += QD1G.xsabs[i] * mesh.hx[i] * phivec[i];
                 }
@@ -248,12 +248,13 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                 // stopping criteria
                 double dphi = 0.0;
                 double phimax = 0.0;
-                for (int i = 0 ; i < N ; i++){
+                for (int i = 0; i < N; i++) {
                     dphi = std::max(dphi, std::fabs(phivec[i] - phi1gold[i]));
                     phimax = std::max(phimax, std::fabs(phivec[i]));
                 }
                 phi1gold = phivec;
-                if (dphi <= epsphi1g1 * phimax + epsphi1g2 && std::fabs(solver.lambda - lambda1gold) <= epsk1g * solver.lambda){
+                if (dphi <= epsphi1g1 * phimax + epsphi1g2 &&
+                    std::fabs(solver.lambda - lambda1gold) <= epsk1g * solver.lambda) {
                     break;
                 }
             }
@@ -262,7 +263,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
             maxepsflx = 0.0;
             maxsfeps = 0.0;
             phimax = 0.0;
-            for (int i = 0 ; i < N ; i++){
+            for (int i = 0; i < N; i++) {
                 maxepsflx = std::max(maxepsflx, std::fabs(phivec[i] - QD1G.phibar[i]));
                 phimax = std::max(phimax, std::fabs(phivec[i]));
                 sfisnew[i] = QD1G.nu[i] * QD1G.xsfiss[i] * phivec[i];
@@ -279,7 +280,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
             QD1G.phie[N] = QD1G.Hm[N] * phivec[N - 1] / (QD1G.Hp[N] + QD1G.CbfR * hxe[N]);
             QD1G.je[0] = QD1G.CbfL * QD1G.phie[0];
             QD1G.je[N] = QD1G.CbfR * QD1G.phie[N];
-            for (int i = 1 ; i < N ; i++){
+            for (int i = 1; i < N; i++) {
                 QD1G.phie[i] = QD1G.Am[i] * phivec[i - 1] + QD1G.Ap[i] * phivec[i];
                 QD1G.je[i] = (QD1G.Hm[i] * phivec[i - 1] - QD1G.Hp[i] * phivec[i]) / hxe[i];
             }
@@ -332,7 +333,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
 
         // compute stopping criterion
         bool converged = false;
-        if (core.acceleration == "MLQD"){
+        if (core.acceleration == "MLQD") {
             const double epskout = 1.0e-5;
             const double epsphiout1 = 1.0e-5;
             const double epsphiout2 = 1.0e-15;
@@ -346,10 +347,12 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
         if (converged) {
             if (core.search != "critical_size") {
                 std::cout << "Outer iteration convergence reached in " << lout << " iterations.\n";
-                if (core.acceleration != "MLQD"){
+                if (core.acceleration != "MLQD") {
                     std::cout << "Final convergence criterion: \n";
-                    std::cout << "  keff" << std::setw(16) << std::scientific << std::setprecision(6) << stopkcrit << "\n";
-                    std::cout << "  flux" << std::setw(16) << std::scientific << std::setprecision(6) << stopflx << "\n";
+                    std::cout << "  keff" << std::setw(16) << std::scientific << std::setprecision(6) << stopkcrit
+                              << "\n";
+                    std::cout << "  flux" << std::setw(16) << std::scientific << std::setprecision(6) << stopflx
+                              << "\n";
                     std::cout << "\n";
                 }
             }
@@ -381,27 +384,27 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
         }
     }
 
-    if (core.acceleration == "MLQD"){
+    if (core.acceleration == "MLQD") {
         double phitotLO = 0.0;
-        for (int g = 0 ; g < ngroups ; g++){
-            for (int i = 0 ; i < mesh.ncells ; i++){
+        for (int g = 0; g < ngroups; g++) {
+            for (int i = 0; i < mesh.ncells; i++) {
                 phitotLO += QDMG.phibar[g][i] * mesh.hx[i];
             }
         }
         const double normLO = H / phitotLO;
-        for (int g = 0 ; g < ngroups ; g++){
-            for (int i = 0 ; i < mesh.ncells ; i++){
+        for (int g = 0; g < ngroups; g++) {
+            for (int i = 0; i < mesh.ncells; i++) {
                 QDMG.phibar[g][i] *= normLO;
             }
-            for (int i = 0 ; i < mesh.nedges ; i++){
+            for (int i = 0; i < mesh.nedges; i++) {
                 QDMG.phie[g][i] *= normLO;
                 QDMG.je[g][i] *= normLO;
             }
         }
-        for (int i = 0 ; i < mesh.ncells ; i++){
+        for (int i = 0; i < mesh.ncells; i++) {
             QD1G.phibar[i] *= normLO;
         }
-        for (int i = 0 ; i < mesh.nedges ; i++){
+        for (int i = 0; i < mesh.nedges; i++) {
             QD1G.phie[i] *= normLO;
             QD1G.je[i] *= normLO;
         }
