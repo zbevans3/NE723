@@ -25,4 +25,4 @@ Switch to a test directory and use:
 ````
 ../src/project-3.exe input-filename.inp
 ````
-Example input files are included in each directory along with their corresponding output (excluding Test B).
+Example input files are included in each directory along with their corresponding output.
