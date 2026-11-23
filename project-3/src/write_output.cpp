@@ -575,7 +575,7 @@ void Output::write_QDMG_data(std::ofstream &outfile, meshData &mesh, QDMGData &Q
     outfile << '\n';
 }
 
-void Output::write_QD1G_data(std::ofstream &outfile, meshData &mesh, QD1GData &QD1G) {
+void Output::write_QD1G_data(std::ofstream &outfile, meshData &mesh, QDMGData &QDMG, QD1GData &QD1G) {
 
     const std::string indent = "    ";
     constexpr int label_width = 8;
@@ -627,6 +627,23 @@ void Output::write_QD1G_data(std::ofstream &outfile, meshData &mesh, QD1GData &Q
     outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
     for (int i = 0; i < mesh.nedges; ++i) {
         outfile << std::setw(cell_width) << QD1G.je[i];
+    }
+    outfile << "\n\n";
+
+    outfile << " Cell average one-group and multigroup LO scalar flux difference, 1 - phi_i / sum_g phi_g,i:\n";
+    outfile << indent << std::right << std::setw(label_width);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        outfile << std::setw(cell_width) << i + 1;
+    }
+    outfile << '\n';
+    outfile << indent << std::string(table_width, '-') << '\n';
+    outfile << indent << std::setw(label_width) << std::scientific << std::setprecision(7);
+    for (int i = 0; i < mesh.ncells; ++i) {
+        double phisum = 0.0;
+        for (int g = 0; g < static_cast<int>(QDMG.phibar.size()); ++g) {
+            phisum += QDMG.phibar[g][i];
+        }
+        outfile << std::setw(cell_width) << 1.0 - QD1G.phibar[i] / phisum;
     }
     outfile << "\n\n";
 }

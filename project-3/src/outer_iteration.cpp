@@ -89,7 +89,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                 }
                 QD1G.xsabs[i] /= phisum;
                 QD1G.xsfiss[i] /= phisum;
-                QD1G.nu[i] /= phifis;
+                QD1G.nu[i] = (phifis > 0.0) ? QD1G.nu[i] / phifis : 0.0;
             }
 
             // Compute 1G boundary factors

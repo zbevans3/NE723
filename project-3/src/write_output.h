@@ -29,7 +29,7 @@ class Output {
 
     void write_QDMG_data(std::ofstream &outfile, meshData &mesh, QDMGData &QDMG);
 
-    void write_QD1G_data(std::ofstream &outfile, meshData &mesh, QD1GData &QD1G);
+    void write_QD1G_data(std::ofstream &outfile, meshData &mesh, QDMGData &QDMG, QD1GData &QD1G);
 
     void write_residuals(std::ofstream &outfile, meshData &mesh, solverData &solver);
 
