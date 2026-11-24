@@ -81,7 +81,11 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                 double phisum = 0.0;
                 double phifis = 0.0;
                 for (int g = 0; g < ngroups; g++) {
-                    QD1G.xsabs[i] += mat.xsabs[g] * QDMG.phibar[g][i];
+                    double sigr = mat.xstot[g];
+                    for (int gp = 0; gp < ngroups; gp++) {
+                        sigr -= mat.xsscatmat[g][gp];
+                    }
+                    QD1G.xsabs[i] += sigr * QDMG.phibar[g][i];
                     QD1G.xsfiss[i] += mat.xsfiss[g] * QDMG.phibar[g][i];
                     QD1G.nu[i] += mat.nu[g] * mat.xsfiss[g] * QDMG.phibar[g][i];
                     phisum += QDMG.phibar[g][i];
@@ -261,6 +265,15 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                     std::fabs(solver.lambda - lambda1gold) <= epsk1g * solver.lambda) {
                     break;
                 }
+            }
+
+            double phitot1g = 0.0;
+            for (int i = 0; i < N; i++) {
+                phitot1g += phivec[i] * mesh.hx[i];
+            }
+            const double norm1g = (mesh.xloc.back() - mesh.xloc.front()) / phitot1g;
+            for (int i = 0; i < N; i++) {
+                phivec[i] *= norm1g;
             }
 
             // outer iteration errors on the one-group solution
