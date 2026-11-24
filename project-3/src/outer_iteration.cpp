@@ -71,7 +71,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
 
         if (core.acceleration == "MLQD") {
             // solve 1G QD system
-
+            
             // first, compute flux-weighted one group cross sections and C_L/C_R
             QD1G.xsabs.assign(mesh.ncells, 0.0);
             QD1G.xsfiss.assign(mesh.ncells, 0.0);
@@ -88,6 +88,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                     phifis += mat.xsfiss[g] * QDMG.phibar[g][i];
                 }
                 QD1G.xsabs[i] /= phisum;
+                // QD1G.xsabs[i] -= wshift;
                 QD1G.xsfiss[i] /= phisum;
                 QD1G.nu[i] = (phifis > 0.0) ? QD1G.nu[i] / phifis : 0.0;
             }
@@ -170,7 +171,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
             // compute coupling coefficients
             for (int i = 0; i < N; i++) {
                 a1[i] = -QD1G.Hm[i] / hxe[i];
-                a2[i] = QD1G.Hm[i + 1] / hxe[i + 1] + QD1G.Hp[i] / hxe[i] + QD1G.xsabs[i] * mesh.hx[i];
+                a2[i] = QD1G.Hm[i + 1] / hxe[i + 1] + QD1G.Hp[i] / hxe[i];
                 a3[i] = -QD1G.Hp[i + 1] / hxe[i + 1];
             }
 
@@ -192,18 +193,21 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
             const double epsphi1g1 = 1.0e-6;
             const double epsphi1g2 = 1.0e-15;
 
+            const double delta = 1.0e-3;
+            std::vector<double> wshift(N, 0.0);
+
             phi1gold = QD1G.phibar;
             int l = 0;
             while (l < core.maxin) {
                 l++;
                 double lambda1gold = solver.lambda;
-
                 // reset and fill coefficient matrix
                 Al.assign(n, 0.0);
                 Ad.assign(n, 0.0);
                 Au.assign(n, 0.0);
                 for (int i = 0; i < N; i++) {
-                    Ad[i] = a2[i];
+                    wshift[i] = (1.0 - delta) * std::min(QD1G.xsabs[i], QD1G.nu[i] * QD1G.xsfiss[i] / lambda1gold);
+                    Ad[i] = a2[i] + (QD1G.xsabs[i] - wshift[i]) * mesh.hx[i];
                     if (i > 0) {
                         Al[i] = a1[i];
                     }
@@ -215,7 +219,7 @@ void OuterIteration::solve(coreData &core, quadratureData &quadrature, std::vect
                 // fission source from previous iterate
                 for (int i = 0; i < N; i++) {
                     invlambda = 1.0 / lambda1gold;
-                    b[i] = invlambda * QD1G.nu[i] * QD1G.xsfiss[i] * mesh.hx[i];
+                    b[i] = (invlambda * QD1G.nu[i] * QD1G.xsfiss[i] - wshift[i]) * mesh.hx[i];
                     bvec[i] = b[i] * phi1gold[i];
                 }
 
